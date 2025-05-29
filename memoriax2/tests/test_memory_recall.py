@@ -1,0 +1,77 @@
+import unittest
+import numpy as np
+from memoriax2.nlp.memory_recall import embed_text, store_embedding, retrieve_similar_memories
+from memoriax2.storage.database import init_db
+
+class TestMemoryRecall(unittest.TestCase):
+
+    def setUp(self):
+        # Initialize the database connection
+        self.conn = init_db()
+        # Create the memory_embeddings table if it doesn't exist
+        cursor = self.conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS memory_embeddings
+                          (key TEXT PRIMARY KEY, embedding BLOB)''')
+        self.conn.commit()
+
+    def test_embed_text(self):
+        # Test embedding generation
+        text = "This is a test sentence."
+        embedding = embed_text(text)
+        self.assertEqual(len(embedding.shape), 1)  # Ensure it's a 1D array
+
+    def test_store_and_retrieve_embeddings(self):
+        # Test storing and retrieving embeddings
+        text1 = "I love programming."
+        text2 = "Coding is my passion."
+        key1 = "entry1"
+        key2 = "entry2"
+
+        # Store embeddings
+        embedding1 = embed_text(text1)
+        embedding2 = embed_text(text2)
+        store_embedding(self.conn, key1, embedding1)
+        store_embedding(self.conn, key2, embedding2)
+
+        # Retrieve similar memories
+        similar_memories = retrieve_similar_memories("I enjoy coding.", self.conn, top_k=1)
+        self.assertIn(key2, similar_memories)  # Expecting key2 to be the most similar
+
+    def test_edge_cases(self):
+        # Test empty input
+        empty_embedding = embed_text("")
+        self.assertEqual(len(empty_embedding.shape), 1)
+
+        # Test very long input
+        long_text = "a" * 10000  # Very long string
+        long_embedding = embed_text(long_text)
+        self.assertEqual(len(long_embedding.shape), 1)
+
+        # Test special characters
+        special_text = "!@#$%^&*()_+"
+        special_embedding = embed_text(special_text)
+        self.assertEqual(len(special_embedding.shape), 1)
+
+    def test_performance(self):
+        import time
+        start_time = time.time()
+        text = "Performance test sentence."
+        for _ in range(1000):
+            embedding = embed_text(text)
+            store_embedding(self.conn, f"key_{_}", embedding)
+        end_time = time.time()
+        self.assertTrue((end_time - start_time) < 5)  # Ensure it runs within 5 seconds
+
+    def test_consistency(self):
+        text = "Consistency test sentence."
+        key = "consistency_key"
+        embedding = embed_text(text)
+        store_embedding(self.conn, key, embedding)
+
+        # Retrieve multiple times
+        for _ in range(10):
+            similar_memories = retrieve_similar_memories(text, self.conn, top_k=1)
+            self.assertIn(key, similar_memories)
+
+if __name__ == '__main__':
+    unittest.main() 

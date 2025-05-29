@@ -1,0 +1,10 @@
+# .cursor or prompt preamble rules
+- Always reference 'The Goal/MemoriaX_Planning.txt' for project structure, terminology, and specification details.
+- Prioritize local memory tracking and emotion-aware interactions in all relevant logic.
+- Ensure all code aligns with the MemoriaX core goals defined in 'The Goal/MemoriaX_Planning.txt'.
+- Use `README.md` for current status, modules in progress, and known limitations.
+- Follow `PEP8` and the `Google Python Style Guide` strictly across all files.
+- Use `memory.db` as the default local persistence target unless explicitly stated otherwise.
+- For TODO sections like `1.1`, complete **all sub-items (1.1.1, 1.1.2, etc.) as a unified implementation plan**.
+- Treat each task group (e.g., `1.2.*`, `1.3.*`) as a **single feature module**—use consistent structure and naming.
+- Use MemoryX2 as the project folder for all changes to files.

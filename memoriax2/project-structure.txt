@@ -1,0 +1,8 @@
+MemoriaX/
+├── core/              # Core chatbot logic
+├── nlp/               # NLP-related logic (entity recognition, etc.)
+├── storage/           # Database logic for memory management
+├── venv/              # Virtual environment
+├── main.py            # Entry point for your chatbot
+├── requirements.txt   # Dependencies for your project
+└── README.md          # Documentation

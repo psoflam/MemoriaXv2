@@ -1,0 +1,260 @@
+# TODO List -Phase 1 Scaffolding.
+
+# Backend
+- [ ] 1.1.1 Design database schema (MemoriaX/storage/database.py)
+- [ ] 1.1.2 Functions for memory storage, retrieval, and consolidation (MemoriaX/storage/database.py)
+- [ ] 1.1.3 NLP core engine integration (MemoriaX/nlp/engine.py)
+- [ ] 1.1.4 Training pipeline setup (MemoriaX/nlp/training.py)
+
+# Frontend
+- [ ] 1.2.1 Design chatbot UI (MemoriaX/ui/main_interface.py)
+- [ ] 1.2.2 Create persona editor (MemoriaX/ui/persona_editor.py)
+- [ ] 1.2.3 Add accessibility/responsiveness (MemoriaX/ui/accessibility.py)
+
+# AI & Model Training
+- [ ] 1.3.1 Tokenization logic (MemoriaX/nlp/tokenizer.py)
+- [ ] 1.3.2 Fine-tuning script (MemoriaX/nlp/fine_tuning.py)
+
+# Security
+- [ ] 1.4.1 AES-256 encryption for SQLite (MemoriaX/storage/security.py)
+- [ ] 1.4.2 GDPR/CCPA compliance tools (MemoriaX/security/compliance.py)
+
+# Deployment
+- [ ] 1.5.1 Package Electron app (MemoriaX/deployment/electron.js)
+- [ ] 1.5.2 Develop mobile app (MemoriaX/deployment/mobile_app.py)
+- [ ] 1.5.3 Offline sync engine (MemoriaX/deployment/offline_sync.py)
+
+# Testing & QA
+- [ ] 1.6.1 Unit & integration tests (MemoriaX/tests/)
+- [ ] 1.6.2 User acceptance testing setup (MemoriaX/tests/uat.py)
+
+# Post-Launch Support
+- [ ] 1.7.1 Feedback tool (MemoriaX/support/feedback.py)
+- [ ] 1.7.2 Continuous improvement process (MemoriaX/support/improvements.py)
+
+
+# TODO List – Phase 2 Integration
+
+# Backend
+- [ ] 2.1.1 Wire NLP engine to chatbot loop (MemoriaX/core/chatbot.py)
+- [ ] 2.1.2 Connect memory functions to input/output flow (MemoriaX/core/chatbot.py)
+- [ ] 2.1.3 Implement memory consolidation logic (MemoriaX/storage/database.py)
+- [ ] 2.1.4 Add memory pruning or decay strategy (MemoriaX/storage/database.py)
+
+# Frontend
+- [ ] 2.2.1 Connect persona editor to live memory storage (MemoriaX/ui/persona_editor.py)
+- [ ] 2.2.2 Ensure accessibility layers adapt to saved persona traits (MemoriaX/ui/accessibility.py)
+- [ ] 2.2.3 Implement memory-aware prompt rendering (MemoriaX/ui/main_interface.py)
+
+# AI & Model Training
+- [ ] 2.3.1 Finalize training pipeline with JSON-based input (MemoriaX/nlp/training.py)
+- [ ] 2.3.2 Implement memory-augmented prompt generation (MemoriaX/nlp/engine.py)
+- [ ] 2.3.3 Support context injection from stored memory (MemoriaX/nlp/engine.py)
+
+# Security
+- [ ] 2.4.1 Validate SQLCipher encryption on active DB writes (MemoriaX/storage/security.py)
+- [ ] 2.4.2 Implement memory redaction and deletion interface (MemoriaX/security/compliance.py)
+- [ ] 2.4.3 Add memory export (JSON) for GDPR/CCPA requests (MemoriaX/security/compliance.py)
+
+# Deployment
+- [ ] 2.5.1 Connect UI to Electron backend bridge (MemoriaX/deployment/electron.js)
+- [ ] 2.5.2 Scaffold React Native mobile sync logic (MemoriaX/deployment/mobile_app.py)
+- [ ] 2.5.3 Build offline-first memory sync + fallbacks (MemoriaX/deployment/offline_sync.py)
+
+# Testing & QA
+- [ ] 2.6.1 Implement full test coverage for NLP/memory pipeline (MemoriaX/tests/)
+- [ ] 2.6.2 Add end-to-end tests for persona interactions (MemoriaX/tests/)
+- [ ] 2.6.3 Simulate multi-day conversations for memory validation (MemoriaX/tests/uat.py)
+
+# Post-Launch Support
+- [ ] 2.7.1 Add memory quality feedback UI (MemoriaX/support/feedback.py)
+- [ ] 2.7.2 Log retry reasons and memory access frequency (MemoriaX/support/improvements.py)
+- [ ] 2.7.3 Track user tone shift over time and generate insight logs (MemoriaX/support/improvements.py)
+
+
+# TODO List – Phase 3 MVP Readiness
+
+# Backend
+- [ ] 3.1.1 Implement real-time memory update events (MemoriaX/core/chatbot.py)
+- [ ] 3.1.2 Add memory scoring system for recall relevance (MemoriaX/storage/database.py)
+- [ ] 3.1.3 Add memory decay timer or hit counter (MemoriaX/storage/database.py)
+
+# Frontend
+- [ ] 3.2.1 Add inline memory recall markers (MemoriaX/ui/main_interface.py)
+- [ ] 3.2.2 Create interactive memory browser panel (MemoriaX/ui/main_interface.py)
+- [ ] 3.2.3 Expand persona editor with emotional tone presets (MemoriaX/ui/persona_editor.py)
+
+# AI & Model Training
+- [ ] 3.3.1 Implement prompt variation system for tone and context shifts (MemoriaX/nlp/engine.py)
+- [ ] 3.3.2 Add semantic memory tagging using embeddings (MemoriaX/nlp/engine.py)
+- [ ] 3.3.3 Build personality-driven response modifiers (MemoriaX/nlp/engine.py)
+
+# Security
+- [ ] 3.4.1 Add user-controlled memory deletion UI (MemoriaX/security/compliance.py)
+- [ ] 3.4.2 Create audit trail logging system for memory access (MemoriaX/security/compliance.py)
+
+# Deployment
+- [ ] 3.5.1 Bundle offline SQLite DB with Electron/Android builds (MemoriaX/deployment/)
+- [ ] 3.5.2 Create local cache purge and reset flow (MemoriaX/deployment/offline_sync.py)
+- [ ] 3.5.3 Validate app performance in airplane mode/offline state (MemoriaX/deployment/mobile_app.py)
+
+# Testing & QA
+- [ ] 3.6.1 Simulate multi-session user behavior with memory changes (MemoriaX/tests/)
+- [ ] 3.6.2 Test memory recall accuracy after session reload (MemoriaX/tests/uat.py)
+- [ ] 3.6.3 Perform UX audit on chatbot + persona flow (MemoriaX/tests/uat.py)
+
+# Post-Launch Support
+- [ ] 3.7.1 Add bug reporting tool with session context (MemoriaX/support/feedback.py)
+- [ ] 3.7.2 Enable logging of feedback tied to memory recall success (MemoriaX/support/improvements.py)
+- [ ] 3.7.3 Add in-app help for customizing companion behavior (MemoriaX/support/improvements.py)
+
+
+# TODO List – Phase 4 Expansion
+
+# Backend
+- [ ] 4.1.1 Implement multi-user support for local profiles (MemoriaX/core/chatbot.py)
+- [ ] 4.1.2 Add profile switcher and session history isolation (MemoriaX/storage/database.py)
+- [ ] 4.1.3 Support custom trait injection via API (MemoriaX/core/chatbot.py)
+
+# Frontend
+- [ ] 4.2.1 Build persona trait visualization (MemoriaX/ui/persona_editor.py)
+- [ ] 4.2.2 Enable companion appearance customization UI (MemoriaX/ui/persona_editor.py)
+- [ ] 4.2.3 Add multi-persona dashboard and switching (MemoriaX/ui/main_interface.py)
+
+# AI & Model Training
+- [ ] 4.3.1 Add long-term memory embedding clustering for topic grouping (MemoriaX/nlp/engine.py)
+- [ ] 4.3.2 Integrate Whisper or Google Speech-to-Text (MemoriaX/nlp/voice_input.py)
+- [ ] 4.3.3 Implement text-to-speech with ElevenLabs or Coqui (MemoriaX/nlp/voice_output.py)
+
+# Security
+- [ ] 4.4.1 Add biometric or PIN-based lock screen (MemoriaX/security/access_control.py)
+- [ ] 4.4.2 Secure local session tokens and memory caches (MemoriaX/security/access_control.py)
+- [ ] 4.4.3 Expand GDPR tools to support "download full history as ZIP" (MemoriaX/security/compliance.py)
+
+# Deployment
+- [ ] 4.5.1 Integrate full voice interaction flow (MemoriaX/deployment/mobile_app.py)
+- [ ] 4.5.2 Optimize Electron app startup and memory load time (MemoriaX/deployment/electron.js)
+- [ ] 4.5.3 Build app settings interface for voice and accessibility preferences (MemoriaX/deployment/offline_sync.py)
+
+# Testing & QA
+- [ ] 4.6.1 Run voice input/output latency tests across devices (MemoriaX/tests/)
+- [ ] 4.6.2 Evaluate audio transcription accuracy with Whisper (MemoriaX/tests/uat.py)
+- [ ] 4.6.3 Perform stress test with 1,000+ memory entries (MemoriaX/tests/uat.py)
+
+# Post-Launch Support
+- [ ] 4.7.1 Add voice-command-driven feedback system (MemoriaX/support/feedback.py)
+- [ ] 4.7.2 Log common failure cases by voice vs. text (MemoriaX/support/improvements.py)
+- [ ] 4.7.3 Enable real-time onboarding wizard for new users (MemoriaX/support/improvements.py)
+
+
+# TODO List – Phase 5 Commercial & Community Expansion
+
+# Backend
+- [ ] 5.1.1 Build modular plugin system for third-party companion modules (MemoriaX/core/plugin_loader.py)
+- [ ] 5.1.2 Add sandboxed memory extension API for mod safety (MemoriaX/core/plugin_loader.py)
+- [ ] 5.1.3 Track user opt-in data for feature metrics (MemoriaX/core/telemetry.py)
+
+# Frontend
+- [ ] 5.2.1 Create mod/plugin manager UI (MemoriaX/ui/mod_center.py)
+- [ ] 5.2.2 Build subscription settings UI with feature gating (MemoriaX/ui/main_interface.py)
+- [ ] 5.2.3 Add visual indicators for synced vs. offline memory states (MemoriaX/ui/main_interface.py)
+
+# AI & Model Training
+- [ ] 5.3.1 Allow dynamic prompt injection from installed mods (MemoriaX/nlp/engine.py)
+- [ ] 5.3.2 Train and test modular persona packs (MemoriaX/nlp/persona_packs/)
+- [ ] 5.3.3 Enable community persona JSON import/export (MemoriaX/nlp/persona_packs/)
+
+# Security
+- [ ] 5.4.1 Implement AES-encrypted sync with key-based auth (MemoriaX/security/cloud_sync.py)
+- [ ] 5.4.2 Add per-mod permission prompts and audit logging (MemoriaX/security/plugin_sandbox.py)
+- [ ] 5.4.3 Validate compliance before cloud upload (MemoriaX/security/compliance.py)
+
+# Deployment
+- [ ] 5.5.1 Integrate cloud sync service (e.g., Supabase, Firebase, custom) (MemoriaX/deployment/cloud_sync.py)
+- [ ] 5.5.2 Add in-app purchase system for mobile stores (MemoriaX/deployment/mobile_app.py)
+- [ ] 5.5.3 Deploy app builds to Play Store/TestFlight (MemoriaX/deployment/store_release.py)
+
+# Testing & QA
+- [ ] 5.6.1 Test plugin compatibility and isolation (MemoriaX/tests/)
+- [ ] 5.6.2 Run monetization test cases for locked features (MemoriaX/tests/uat.py)
+- [ ] 5.6.3 Verify cloud sync reliability across sessions/devices (MemoriaX/tests/uat.py)
+
+# Post-Launch Support
+- [ ] 5.7.1 Build community mod submission process (MemoriaX/support/mod_portal.py)
+- [ ] 5.7.2 Enable cloud-based feedback pipeline (MemoriaX/support/feedback.py)
+- [ ] 5.7.3 Monitor monetization funnel and user retention metrics (MemoriaX/support/improvements.py)
+
+
+# TODO List – Phase 6 Optionality & Ethics
+
+# Backend
+- [ ] 6.1.1 Implement NSFW-safe toggle and user-specific content filters (MemoriaX/core/content_control.py)
+- [ ] 6.1.2 Route NSFW logic to dedicated uncensored prompt handler (MemoriaX/nlp/nsfw_engine.py)
+- [ ] 6.1.3 Build enterprise content policy profile support (MemoriaX/core/enterprise_profiles.py)
+
+# Frontend
+- [ ] 6.2.1 Create NSFW mode onboarding and opt-in screen (MemoriaX/ui/settings/privacy_settings.py)
+- [ ] 6.2.2 Build age verification + disclaimer flow (MemoriaX/ui/settings/privacy_settings.py)
+- [ ] 6.2.3 Add enterprise admin panel for content visibility, flagging, and audit logs (MemoriaX/ui/enterprise_admin.py)
+
+# AI & Model Training
+- [ ] 6.3.1 Maintain separate SFW/NSFW response branches in prompt pipeline (MemoriaX/nlp/engine.py)
+- [ ] 6.3.2 Add dynamic tone softening, escalation detection, and roleplay safety checks (MemoriaX/nlp/safety_filters.py)
+- [ ] 6.3.3 Support domain-tuned enterprise companions (MemoriaX/nlp/domain_specializations/)
+
+# Security
+- [ ] 6.4.1 Gate NSFW access behind age + passcode (MemoriaX/security/nsfw_access_control.py)
+- [ ] 6.4.2 Encrypt sensitive session memory separately (MemoriaX/security/nsfw_memory_vault.py)
+- [ ] 6.4.3 Add content moderation webhook support for audit (MemoriaX/security/compliance.py)
+
+# Deployment
+- [ ] 6.5.1 Add APK-only uncensored version with sideload support (MemoriaX/deployment/alt_channel_release.py)
+- [ ] 6.5.2 Build separate enterprise edition with SSO and audit compliance (MemoriaX/deployment/enterprise_build.py)
+- [ ] 6.5.3 Implement optional telemetry for content moderation (MemoriaX/deployment/telemetry_optin.py)
+
+# Testing & QA
+- [ ] 6.6.1 Simulate inappropriate prompt injection and escalate (MemoriaX/tests/safety_tests.py)
+- [ ] 6.6.2 Test enterprise compliance workflows (MemoriaX/tests/uat_enterprise.py)
+- [ ] 6.6.3 Perform abuse potential red team testing (MemoriaX/tests/uat_nsfw.py)
+
+# Post-Launch Support
+- [ ] 6.7.1 Enable user flagging and prompt memory report system (MemoriaX/support/reporting.py)
+- [ ] 6.7.2 Build support pipeline for NSFW edge case resolution (MemoriaX/support/nsfw_feedback.py)
+- [ ] 6.7.3 Offer enterprise onboarding materials and compliance toolkit (MemoriaX/support/enterprise_guide.pdf)
+
+
+# TODO List – Phase 7 Multilingual, Sync, and API Expansion
+
+# Backend
+- [ ] 7.1.1 Add persona import/export system with full memory state (MemoriaX/core/persona_transfer.py)
+- [ ] 7.1.2 Implement server-hosted API for persona sync and sharing (MemoriaX/core/api_server.py)
+- [ ] 7.1.3 Build persona compatibility validator across app versions (MemoriaX/core/versioning.py)
+
+# Frontend
+- [ ] 7.2.1 Build multilingual toggle and locale selection UI (MemoriaX/ui/settings/language_selector.py)
+- [ ] 7.2.2 Add persona migration/import interface (MemoriaX/ui/persona_editor.py)
+- [ ] 7.2.3 Display translation source indicators on localized content (MemoriaX/ui/main_interface.py)
+
+# AI & Model Training
+- [ ] 7.3.1 Integrate multilingual models or pipelines (MemoriaX/nlp/translation_engine.py)
+- [ ] 7.3.2 Build prompt templates for JP/ES/FR/DE locales (MemoriaX/nlp/prompts/locales/)
+- [ ] 7.3.3 Implement memory clustering across languages using embeddings (MemoriaX/nlp/engine.py)
+
+# Security
+- [ ] 7.4.1 Add cross-locale data sanitization checks (MemoriaX/security/compliance.py)
+- [ ] 7.4.2 Enforce TLS and API key control for hosted mode (MemoriaX/security/api_gateway.py)
+
+# Deployment
+- [ ] 7.5.1 Build cloud-hosted API service tier (MemoriaX/deployment/api_service.py)
+- [ ] 7.5.2 Enable secure download/upload of personas and memory (MemoriaX/deployment/persona_hub.py)
+- [ ] 7.5.3 Integrate optional federated storage (e.g., IPFS, S3 backend) (MemoriaX/deployment/storage_layer.py)
+
+# Testing & QA
+- [ ] 7.6.1 Validate memory integrity across locale switches (MemoriaX/tests/i18n_tests.py)
+- [ ] 7.6.2 Simulate persona sync between desktop ↔ mobile (MemoriaX/tests/sync_tests.py)
+- [ ] 7.6.3 Perform latency and API rate limit stress tests (MemoriaX/tests/api_tests.py)
+
+# Post-Launch Support
+- [ ] 7.7.1 Create public API documentation (MemoriaX/support/api_docs.md)
+- [ ] 7.7.2 Build public persona gallery browser (MemoriaX/support/persona_hub_viewer.py)
+- [ ] 7.7.3 Enable user persona backups with history snapshots (MemoriaX/support/backup_manager.py)
