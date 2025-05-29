@@ -32,3 +32,18 @@ def retrieve_similar_memories(input_text, conn, top_k=3):
     cursor.execute("SELECT key FROM memory_embeddings WHERE key IN ({})".format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
     top_memories = [row[0] for row in cursor.fetchall()]
     return top_memories 
+
+def populate_memory(conn):
+    """Populate memory with emotionally diverse phrases."""
+    phrases = [
+        "I am so happy today!",
+        "I'm feeling very sad right now.",
+        "Do you remember our trip to Japan?",
+        "The weather is gloomy and it makes me nostalgic.",
+        "I am excited about the new project!"
+    ]
+    
+    for i, text in enumerate(phrases):
+        key = f"entry_{i+1}"
+        embedding = embed_text(text)
+        store_embedding(conn, key, embedding) 

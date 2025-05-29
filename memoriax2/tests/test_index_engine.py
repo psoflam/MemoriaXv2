@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from memoriax2.memory.index_engine import MemoryIndex
+from memoriax2.utils.text_embedding import embed_text
 
 class TestMemoryIndex(unittest.TestCase):
    def setUp(self):
@@ -8,13 +9,48 @@ class TestMemoryIndex(unittest.TestCase):
     self.memory_index = MemoryIndex(self.embedding_dim)
 
     def test_add_and_query_memory(self):
-        # Add a memory
-        vector = [0.1] * 128  # Example 128-dimensional vector
+        # Add a memory using embed_text
+        text = "I love programming."
+        vector = embed_text(text)
         self.memory_index.add_memory('test_id', vector)
 
         # Query the memory
         result = self.memory_index.query_similar(vector, top_k=1)
         self.assertEqual(result, ['test_id'])
+
+    def test_populate_and_query_memories(self):
+        # Add multiple memories using embed_text
+        texts = [
+            "I love programming.",
+            "I'm feeling very sad today.",
+            "Do you remember our trip to Japan?",
+            "The weather is gloomy and it makes me nostalgic.",
+            "I am excited about the new project!"
+        ]
+        for i, text in enumerate(texts):
+            vector = embed_text(text)
+            self.memory_index.add_memory(f'id_{i+1}', vector)
+
+        # Query similar to the first text
+        result = self.memory_index.query_similar(embed_text("I love coding."), top_k=1)
+        self.assertEqual(result, ['id_1'])  # Expecting id_1 to be the most similar
+
+        # Query for top-3 similar
+        result = self.memory_index.query_similar(embed_text("I love coding."), top_k=3)
+        self.assertIn('id_1', result)  # Expecting id_1 to be among the top-3
+
+    def test_reset_index(self):
+        # Add a memory
+        text = "I love programming."
+        vector = embed_text(text)
+        self.memory_index.add_memory('test_id', vector)
+
+        # Reset the index
+        self.memory_index.reset_index()
+
+        # Verify the index is empty
+        result = self.memory_index.query_similar(vector, top_k=1)
+        self.assertEqual(result, [])  # Expecting no results after reset
 
     def test_retrieval_accuracy(self):
         # Add multiple memories
