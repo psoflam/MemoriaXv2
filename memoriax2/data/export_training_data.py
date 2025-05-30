@@ -29,7 +29,7 @@ training_data = [
 ]
 
 # Write to JSON file
-with open('data/train.json', 'w') as f:
+with open('train.json', 'w') as f:
     json.dump(training_data, f, indent=4)
 
 # Close the database connection

@@ -1,13 +1,19 @@
 import json
 import random
+import os
+
+# Ensure the data directory exists
+data_dir = "data"
+os.makedirs(data_dir, exist_ok=True)
 
 # Load synthetic data
-def load_synthetic_data(filename="data/train.json"):
-    with open(filename, 'r') as f:
+def load_synthetic_data(filename="synthetic_data.json"):
+    filepath = os.path.join(data_dir, filename)
+    with open(filepath, 'r') as f:
         return json.load(f)
 
 # Load processed external data
-def load_processed_data(filename="data/processed_datasets.json"):
+def load_processed_data(filename="processed_datasets.json"):
     with open(filename, 'r') as f:
         return json.load(f)
 
@@ -21,8 +27,9 @@ def combine_and_shuffle_data(synthetic_data, processed_data, target_size=5000):
     return combined_data
 
 # Save the combined data to a JSON file
-def save_to_json(data, filename="data/train.json"):
-    with open(filename, 'w') as f:
+def save_to_json(data, filename="train.json"):
+    filepath = os.path.join(data_dir, filename)
+    with open(filepath, 'w') as f:
         json.dump(data, f, indent=2)
 
 # Main execution

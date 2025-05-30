@@ -1,5 +1,6 @@
 import random
 import json
+import os
 
 # Define the persona traits, memory types, and emotion tags
 persona_traits = ["empathetic", "supportive", "insightful", "reflective"]
@@ -34,9 +35,14 @@ def generate_synthetic_data(num_examples_per_emotion=1000):
     random.shuffle(data)
     return data
 
+# Ensure the data directory exists
+data_dir = "data"
+os.makedirs(data_dir, exist_ok=True)
+
 # Save the generated data to a JSON file
-def save_to_json(data, filename="data/train.json"):
-    with open(filename, 'w') as f:
+def save_to_json(data, filename="synthetic_data.json"):
+    filepath = os.path.join(data_dir, filename)
+    with open(filepath, 'w') as f:
         json.dump(data, f, indent=2)
 
 # Main execution
