@@ -33,7 +33,8 @@ def init_db():
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS memory (
                         key TEXT PRIMARY KEY,
-                        value TEXT
+                        value TEXT,
+                        memory_type TEXT DEFAULT 'fact'
                       )''')
     
     # Optional: table used in store_in_db()

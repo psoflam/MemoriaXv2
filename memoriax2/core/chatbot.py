@@ -114,7 +114,7 @@ def conversation_mode(user_input, conn):
     return response
 
 def chat_with_user(user_input, context, emotion):
-    prompt = f"User: {user_input}\nContext: {context}\nEmotion: {emotion}\nMemoriaX:"
+    prompt = f"User: {user_input}\n---\nContext: {context}\nEmotion: {emotion}\nMemoriaX:"
     response = generate_base_response(prompt)
     if emotion == 'sad':
         response = add_empathetic_tone(response)
@@ -152,7 +152,8 @@ def summarize_session(conn, session_id):
 def fetch_recent_memory_context(conn, user_input, memory_index):
     try:
         similar = retrieve_similar_memories(user_input, conn, memory_index)
-        return "\n".join(similar) if similar else "No relevant memories found."
+        memory_texts = [text for key, text in similar]  # extract only the text
+        return "\n".join(memory_texts) if memory_texts else "No relevant memories found."
     except Exception as e:
         print(f"Error fetching memory context: {e}")
         return "Error retrieving memory context."

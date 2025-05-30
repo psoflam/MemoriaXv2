@@ -65,7 +65,22 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         recent_memories = {row[0] for row in rows} if rows else set()
         final_memories = [mem for mem in prioritized_memories if mem[0] not in recent_memories]
 
-        return final_memories
+        # Remove duplicate entries
+        final_memories = list(set(final_memories))
+
+        # Calculate similarity scores and append to memory context lines
+        final_memories_with_scores = []
+        for mem in final_memories:
+            key, text = mem
+            embedding = embed_text(text)
+            score = np.dot(input_embedding, embedding) / (np.linalg.norm(input_embedding) * np.linalg.norm(embedding))
+            final_memories_with_scores.append((key, text, score))
+
+        # Log each matched memory and its score
+        for key, text, score in final_memories_with_scores:
+            print(f"Matched memory: {text} (score: {score})")
+
+        return final_memories_with_scores
     except Exception as e:
         print(f"Error retrieving similar memories: {e}")
         return []
