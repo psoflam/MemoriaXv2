@@ -83,5 +83,19 @@ class TestMemoryRecall(unittest.TestCase):
             similar_memories = retrieve_similar_memories(text, self.conn, top_k=1)
             self.assertIn(key, similar_memories)
 
+    def test_memory_recall_for_similar_input(self):
+        # Store a memory
+        original_text = "I love Japan"
+        key = "entry_test"
+        embedding = embed_text(original_text)
+        store_embedding(self.conn, key, embedding)
+
+        # Query with a semantically similar input
+        similar_input = "What about Japan?"
+        similar_memories = retrieve_similar_memories(similar_input, self.conn, top_k=1)
+
+        # Check if the original memory is recalled
+        self.assertIn(key, [mem[0] for mem in similar_memories])  # Expecting the key to be recalled
+
 if __name__ == '__main__':
     unittest.main() 

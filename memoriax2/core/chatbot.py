@@ -1,9 +1,14 @@
 from memoriax2.nlp.processor import analyze_input  # Import the analyze_input function from the memoriax2.nlp.processor module
 from memoriax2.storage.database import mark_confirmed, store_in_db, store_memory, retrieve_memory  # Import store_memory and retrieve_memory functions from the memoriax2.storage.database module
 from memoriax2.nlp.emotion import detect_emotion
-from memoriax2.nlp.memory_recall import retrieve_similar_memories
+from memoriax2.nlp.memory_recall import retrieve_similar_memories, embed_text
 import faiss
+import numpy as np
 import random
+import uuid
+from memoriax2.memory.index_engine import MemoryIndex
+
+memory_index = MemoryIndex(384)  # or whatever your embedding dimension is
 
 def process_input(user_input, conn, session_id):
     try:
@@ -11,18 +16,46 @@ def process_input(user_input, conn, session_id):
         emotion = detect_emotion(user_input)
         response = chat_with_user(user_input, context, emotion)
 
+        # Generate a memory key
+        generated_key = f"entry_{uuid.uuid4()}"
+
         # Log the turn
-        store_in_db(conn, session_id, user_input, response, emotion)
+        store_in_db(conn, session_id, generated_key, response, emotion)
+
+        # Store memory explicitly
+        store_memory(conn, generated_key, user_input, response)
+
         return response, emotion
     except Exception as e:
         print(f"Error processing input: {e}")
         return "I'm sorry, something went wrong.", None
 
-def store_memory(user_input, response):
-    emotion = detect_emotion(user_input)
-    # Store the emotion alongside the user message
-    # Assuming there's a function to store data in the database
-    store_in_db(user_input, response, emotion)
+def store_memory(conn, key, user_input, response):
+    # Create the vector from the user input (not the bot response)
+    new_embedding = embed_text(user_input)
+
+    cursor = conn.cursor()
+
+    # Similarity deduplication logic (optional)
+    cursor.execute("SELECT key, embedding FROM memory_embeddings ORDER BY rowid DESC LIMIT 20")
+    recent = cursor.fetchall()
+
+    for recent_key, emb_blob in recent:
+        existing = np.frombuffer(emb_blob, dtype=np.float32)
+        sim = np.dot(new_embedding, existing) / (np.linalg.norm(new_embedding) * np.linalg.norm(existing))
+        if sim > 0.9:
+            print(f"Skipping memory '{key}' due to similarity with '{recent_key}'")
+            return
+
+    # Store full memory content
+    cursor.execute("INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, user_input))
+    cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, new_embedding.tobytes()))
+    memory_index.add_memory(key, new_embedding)
+
+    print("Top FAISS keys now:", memory_index.list_keys()[:3])
+    conn.commit()
+    
+   
 
 def generate_response(user_input, conn=None):
     emotion = detect_emotion(user_input)
@@ -33,9 +66,6 @@ def generate_response(user_input, conn=None):
         response = make_response_more_empathetic(base)
     else:
         response = f"Calmly, {base}"
-
-    if conn:
-        store_in_db(conn, user_input, response, emotion)
 
     return response
 

@@ -31,9 +31,9 @@ def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
         # Fetch memory texts and keys from the database using the retrieved IDs
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT m.key, sm.user_input 
+            SELECT m.key, mem.value 
             FROM memory_embeddings m 
-            JOIN session_messages sm ON m.key = sm.user_input 
+            JOIN memory mem ON m.key = mem.key 
             WHERE m.key IN ({})
         """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()

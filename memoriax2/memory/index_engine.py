@@ -29,3 +29,6 @@ class MemoryIndex:
         self.index.reset()
         self.id_map.clear()
         print("Index and id_map have been reset.")  # Debug print 
+
+    def list_keys(self):
+        return list(self.id_map.keys())
