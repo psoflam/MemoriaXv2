@@ -79,7 +79,7 @@ def init_db():
     conn.commit()
     return conn
 
-def store_memory(conn, session_id, user_input, value):
+def store_memory(conn, session_id, user_input, value, memory_index):
     cursor = conn.cursor()
     memory_key = f"entry_{uuid.uuid4()}"  # Generate a UUID key with prefix 'entry_'
     new_embedding = embed_text(value)
@@ -191,10 +191,17 @@ def fetch_recent_memory_context(conn, user_input):
         print(f"Error fetching memory context: {e}")
         return "No context available"
 
-# Update retrieve_similar_memories to pull from session_messages
-def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
+# Update retrieve_similar_memories to accept memory_index
+def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_memory_limit=5):
     try:
+        # Embed the input text
         input_embedding = embed_text(input_text)
+        
+        # Add a type check for the embedding
+        if not isinstance(input_embedding, np.ndarray):
+            print("[EMBEDDING ERROR] Failed to embed input_text:", input_text)
+            return []
+
         # Query MemoryIndex instead of calculating cosine similarities manually
         top_memory_ids = memory_index.query_similar(input_embedding, top_k)
 

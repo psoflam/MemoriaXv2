@@ -97,5 +97,19 @@ class TestMemoryRecall(unittest.TestCase):
         # Check if the original memory is recalled
         self.assertIn(key, [mem[0] for mem in similar_memories])  # Expecting the key to be recalled
 
+    def test_query_similar_type_error(self):
+        # Test that passing a string raises a TypeError
+        with self.assertRaises(TypeError):
+            memory_index = MemoryIndex(384)
+            memory_index.query_similar("this should be an array", top_k=1)
+
+    def test_query_similar_with_valid_vector(self):
+        # Test that passing a valid np.ndarray works correctly
+        memory_index = MemoryIndex(384)
+        vector = np.random.rand(384).astype(np.float32)  # Create a random vector with the correct dtype
+        memory_index.add_memory("test_key", vector)
+        similar_keys = memory_index.query_similar(vector, top_k=1)
+        self.assertIn("test_key", similar_keys)
+
 if __name__ == '__main__':
     unittest.main() 

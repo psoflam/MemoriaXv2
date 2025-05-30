@@ -22,11 +22,25 @@ def store_embedding(conn, key, embedding):
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, embedding.tobytes()))
     conn.commit()
 
-def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
+def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_memory_limit=5):
     try:
+        # Embed the input text
         input_embedding = embed_text(input_text)
-        # Query MemoryIndex instead of calculating cosine similarities manually
+        
+        # Add a type check for the embedding
+        if not isinstance(input_embedding, np.ndarray):
+            print("[EMBEDDING ERROR] Failed to embed input_text:", input_text)
+            return []
+
+        print("Embedding shape:", input_embedding.shape)
+        print("Index length:", len(memory_index))
+
+        # Use input_embedding instead of input_text
         top_memory_ids = memory_index.query_similar(input_embedding, top_k)
+
+        if not top_memory_ids:
+            print("No results from FAISS")
+            return []
 
         # Fetch memory texts and keys from the database using the retrieved IDs
         cursor = conn.cursor()

@@ -5,6 +5,7 @@ from memoriax2.storage.database import init_db, store_session_memory, summarize_
 from memoriax2.core.chatbot import process_input, summarize_session
 import datetime
 import uuid
+from memoriax2.memory.index_engine import MemoryIndex
 
 # Generate a random session_id at startup
 session_id = str(uuid.uuid4())
@@ -13,6 +14,10 @@ def main():
     # Initialize the database connection
     conn = init_db()
 
+    # Initialize MemoryIndex instance
+    memory_index = MemoryIndex(384)  # Assuming 384 is the embedding dimension
+    memory_index.load_index_from_db(conn)  # Load data from the database
+
     while True:
         # Get user input from the console
         user_input = input("You: ")
@@ -20,7 +25,7 @@ def main():
         print(f"[{timestamp}] You: {user_input}")
 
         # Process the user input and get the response from the chatbot
-        response, emotion = process_input(user_input, conn, session_id)
+        response, emotion = process_input(user_input, conn, session_id, memory_index)
         print(f"[{timestamp}] Bot: {response}")
 
         # Store each response in the current session
