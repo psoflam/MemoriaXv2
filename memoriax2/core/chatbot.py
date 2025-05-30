@@ -60,3 +60,47 @@ def make_response_more_empathetic(response):
 def __init__(self, embedding_dim: int):
     self.index = faiss.IndexFlatL2(embedding_dim)  # Set the index dimension dynamically
     self.id_map = {}
+
+def conversation_mode(user_input, conn):
+    # Check for recent messages
+    recent_messages = retrieve_memory(conn, 'recent_messages')
+    if not recent_messages:
+        return "Hello! How can I assist you today?"
+
+    # Recognize check-in phrases
+    check_in_phrases = ["how are you", "what's on your mind"]
+    if any(phrase in user_input.lower() for phrase in check_in_phrases):
+        emotion = detect_emotion(user_input)
+        return f"I'm here to listen. How are you feeling today?"
+
+    # Retrieve similar memories with emotional context
+    similar_memories = retrieve_similar_memories(user_input, conn)
+    context = " ".join(similar_memories)
+    response = generate_response(user_input, context)
+    return response
+
+# Update process_input to use conversation_mode
+def process_input(user_input, conn):
+    response = conversation_mode(user_input, conn)
+    return response
+
+def summarize_session(conn, session_id):
+    cursor = conn.cursor()
+    cursor.execute("SELECT key FROM session_memories WHERE session_id = ? AND confirmed = 0", (session_id,))
+    potential_memories = cursor.fetchall()
+
+    # Show potential memories to the user
+    print("Here's what I might remember from today:")
+    for mem in potential_memories:
+        print(f"- {mem[0]}")
+
+    # Ask user to approve or discard
+    for mem in potential_memories:
+        user_input = input(f"Should I remember this: {mem[0]}? (yes/no)")
+        if user_input.lower() == 'yes':
+            mark_confirmed(conn, session_id, mem[0])
+            # Store in long-term memory
+            store_memory(conn, mem[0], retrieve_memory(conn, mem[0]))
+
+# At the end of each session, run summarize_session
+    summarize_session(conn, session_id)

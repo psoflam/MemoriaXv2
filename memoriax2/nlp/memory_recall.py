@@ -21,17 +21,27 @@ def store_embedding(conn, key, embedding):
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, embedding.tobytes()))
     conn.commit()
 
-def retrieve_similar_memories(input_text, conn, top_k=3):
+def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
     """Retrieve top K similar memories based on the input text using MemoryIndex."""
     input_embedding = embed_text(input_text)
     # Query MemoryIndex instead of calculating cosine similarities manually
     top_memory_ids = memory_index.query_similar(input_embedding, top_k)
-    
-    # Fetch memory texts from the database using the retrieved IDs
+
+    # Fetch memory texts and keys from the database using the retrieved IDs
     cursor = conn.cursor()
-    cursor.execute("SELECT key FROM memory_embeddings WHERE key IN ({})".format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
-    top_memories = [row[0] for row in cursor.fetchall()]
-    return top_memories 
+    cursor.execute("SELECT key, text FROM memory_embeddings WHERE key IN ({})".format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
+    top_memories = cursor.fetchall()
+
+    # Prioritize memories with matching emotional tone
+    input_emotion = detect_emotion(input_text)
+    prioritized_memories = [mem for mem in top_memories if detect_emotion(mem[1]) == input_emotion]
+
+    # Limit repetition: Exclude recently used memories
+    cursor.execute("SELECT key FROM recent_memories ORDER BY timestamp DESC LIMIT ?", (recent_memory_limit,))
+    recent_memories = {row[0] for row in cursor.fetchall()}
+    final_memories = [mem for mem in prioritized_memories if mem[0] not in recent_memories]
+
+    return final_memories
 
 def populate_memory(conn):
     """Populate memory with emotionally diverse phrases."""

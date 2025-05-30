@@ -38,6 +38,13 @@ def init_db():
                         emotion TEXT
                       )''')
 
+    # New table for session memories
+    cursor.execute('''CREATE TABLE IF NOT EXISTS session_memories (
+                        session_id TEXT,
+                        key TEXT,
+                        confirmed INTEGER DEFAULT 0
+                      )''')
+
     conn.commit()
     return conn
 
@@ -62,4 +69,14 @@ def store_in_db(conn, user_input, response, emotion):
         INSERT INTO messages (user_input, response, emotion)
         VALUES (?, ?, ?)
     """, (user_input, response, emotion))
+    conn.commit()
+
+def store_session_memory(conn, session_id, key):
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO session_memories (session_id, key) VALUES (?, ?)", (session_id, key))
+    conn.commit()
+
+def mark_confirmed(conn, session_id, key):
+    cursor = conn.cursor()
+    cursor.execute("UPDATE session_memories SET confirmed = 1 WHERE session_id = ? AND key = ?", (session_id, key))
     conn.commit()
