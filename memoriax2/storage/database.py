@@ -45,6 +45,15 @@ def init_db():
                         confirmed INTEGER DEFAULT 0
                       )''')
 
+    # Add the session_messages table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS session_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT,
+                        user_input TEXT,
+                        response TEXT,
+                        emotion TEXT
+                      )''')
+
     conn.commit()
     return conn
 
@@ -80,3 +89,25 @@ def mark_confirmed(conn, session_id, key):
     cursor = conn.cursor()
     cursor.execute("UPDATE session_memories SET confirmed = 1 WHERE session_id = ? AND key = ?", (session_id, key))
     conn.commit()
+
+# Function to log a session message
+def log_session_message(conn, session_id, user_input, response, emotion):
+    with conn:
+        conn.execute(
+            'INSERT INTO session_messages (session_id, user_input, response, emotion) VALUES (?, ?, ?, ?)',
+            (session_id, user_input, response, emotion)
+        )
+
+# Function to get session summary
+def get_session_summary(conn, session_id):
+    cursor = conn.execute('SELECT user_input, response, emotion FROM session_messages WHERE session_id = ?', (session_id,))
+    return [{'user_input': row[0], 'response': row[1], 'emotion': row[2]} for row in cursor.fetchall()]
+
+# Function to summarize session
+def summarize_session(conn, session_id):
+    messages = get_session_summary(conn, session_id)
+    for message in messages:
+        print(f"- {message['user_input']}")
+        remember = input("Remember this? [y/n]: ")
+        if remember.lower() == 'y':
+            store_memory(conn, message['user_input'], message['response'], message['emotion'])

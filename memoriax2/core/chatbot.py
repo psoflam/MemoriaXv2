@@ -1,28 +1,22 @@
 from memoriax2.nlp.processor import analyze_input  # Import the analyze_input function from the memoriax2.nlp.processor module
-from memoriax2.storage.database import store_memory, retrieve_memory  # Import store_memory and retrieve_memory functions from the memoriax2.storage.database module
+from memoriax2.storage.database import mark_confirmed, store_in_db, store_memory, retrieve_memory  # Import store_memory and retrieve_memory functions from the memoriax2.storage.database module
 from memoriax2.nlp.emotion import detect_emotion
 from memoriax2.nlp.memory_recall import retrieve_similar_memories
 import faiss
+import random
 
-def process_input(user_input, conn):
-    entities = analyze_input(user_input)  # Analyze the user input to extract entities
-    for entity, label in entities:
-        if label == 'GPE':  # Check if the entity is a geopolitical entity (like a location)
-            store_memory(conn, 'location', entity)  # Store the location entity in the database
-            return f"Got it! You're in {entity}."  # Return a response acknowledging the location
-    
-    last_location = retrieve_memory(conn, 'location')  # Retrieve the last stored location from the database
-    if last_location:
-        return f"You're in {last_location}, right?"  # Return a response with the last known location
-    
-    # Retrieve similar memories
-    similar_memories = retrieve_similar_memories(user_input, conn)
-    # Inject similar memories into the response context
-    context = " ".join(similar_memories)
-    
-    # Generate response with context
-    response = generate_response(user_input, context)
-    return response
+def process_input(user_input, conn, session_id):
+    try:
+        context = fetch_recent_memory_context(conn, user_input)
+        emotion = detect_emotion(user_input)
+        response = chat_with_user(user_input, context, emotion)
+
+        # Log the full turn
+        store_in_db(conn, session_id, user_input, response, emotion)
+        return response
+    except Exception as e:
+        print(f"Error processing input: {e}")
+        return "I'm sorry, something went wrong."
 
 def store_memory(user_input, response):
     emotion = detect_emotion(user_input)
@@ -79,28 +73,50 @@ def conversation_mode(user_input, conn):
     response = generate_response(user_input, context)
     return response
 
-# Update process_input to use conversation_mode
-def process_input(user_input, conn):
-    response = conversation_mode(user_input, conn)
+def chat_with_user(user_input, context, emotion):
+    prompt = f"User: {user_input}\nContext: {context}\nEmotion: {emotion}\nMemoriaX:"
+    response = generate_base_response(prompt)
+    if emotion == 'sad':
+        response = add_empathetic_tone(response)
     return response
 
 def summarize_session(conn, session_id):
-    cursor = conn.cursor()
-    cursor.execute("SELECT key FROM session_memories WHERE session_id = ? AND confirmed = 0", (session_id,))
-    potential_memories = cursor.fetchall()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT key FROM session_memories
+            WHERE session_id = ? AND confirmed = 0
+        """, (session_id,))
+        potential_memories = cursor.fetchall()
 
-    # Show potential memories to the user
-    print("Here's what I might remember from today:")
-    for mem in potential_memories:
-        print(f"- {mem[0]}")
+        print("Here's what I might remember from today:")
+        for mem in potential_memories:
+            print(f"- {mem[0]}")
 
-    # Ask user to approve or discard
-    for mem in potential_memories:
-        user_input = input(f"Should I remember this: {mem[0]}? (yes/no)")
-        if user_input.lower() == 'yes':
-            mark_confirmed(conn, session_id, mem[0])
-            # Store in long-term memory
-            store_memory(conn, mem[0], retrieve_memory(conn, mem[0]))
+        for mem in potential_memories:
+            user_input = input(f"Should I remember this: {mem[0]}? (yes/no): ")
+            if user_input.lower() == 'yes':
+                mark_confirmed(conn, session_id, mem[0])
+                val = retrieve_memory(conn, mem[0])
+                store_memory(conn, mem[0], val)
+    except Exception as e:
+        print(f"Error summarizing session: {e}")
 
-# At the end of each session, run summarize_session
-    summarize_session(conn, session_id)
+def fetch_recent_memory_context(conn, user_input):
+    try:
+        similar = retrieve_similar_memories(conn, user_input)
+        return "\n".join(similar) if similar else "No relevant memories found."
+    except Exception as e:
+        print(f"Error fetching memory context: {e}")
+        return "Error retrieving memory context."
+
+def add_empathetic_tone(response):
+    # Implementation to add an empathetic tone to the response
+    empathetic_phrases = [
+        "I understand how you feel.",
+        "That sounds really tough.",
+        "I'm here for you.",
+    ]
+    # Choose a random empathetic phrase to prepend
+    empathetic_phrase = random.choice(empathetic_phrases)
+    return f"{empathetic_phrase} {response}"
