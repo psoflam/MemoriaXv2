@@ -26,7 +26,7 @@ def process_input(user_input, conn, session_id, memory_index):
         store_in_db(conn, session_id, generated_key, response, emotion)
 
         # Store memory explicitly
-        store_memory(conn, generated_key, user_input, response, memory_index)
+        store_memory(conn, session_id, user_input, response, memory_index)
 
         # After storing memory, print index status and list keys
         memory_index.print_index_status()
@@ -37,35 +37,41 @@ def process_input(user_input, conn, session_id, memory_index):
         print(f"Error processing input: {e}")
         return "I'm sorry, something went wrong.", None
 
-def store_memory(conn, key, user_input, response, memory_index):
-    # Create the vector from the user input (not the bot response)
-    new_embedding = embed_text(user_input)
-
-    # Debug print to check the type and dtype of new_embedding
-    print(f"[DEBUG] Type of new_embedding: {type(new_embedding)}, dtype: {getattr(new_embedding, 'dtype', None)}")
-
+def store_memory(conn, session_id, user_input, value, memory_index, memory_type='fact'):
     cursor = conn.cursor()
+    memory_key = f"entry_{uuid.uuid4()}"  # Generate a UUID key with prefix 'entry_'
+    new_embedding = embed_text(value)
 
-    # Similarity deduplication logic (optional)
+    # Log the mapping of user_input to memory_key
+    print(f"Mapping user_input '{user_input}' to memory_key '{memory_key}'")
+
+    # Get recent memory embeddings
     cursor.execute("SELECT key, embedding FROM memory_embeddings ORDER BY rowid DESC LIMIT 20")
     recent = cursor.fetchall()
 
+    # Compare embeddings
     for recent_key, emb_blob in recent:
         existing = np.frombuffer(emb_blob, dtype=np.float32)
         sim = np.dot(new_embedding, existing) / (np.linalg.norm(new_embedding) * np.linalg.norm(existing))
         if sim > 0.9:
-            print(f"Skipping memory '{key}' due to similarity with '{recent_key}'")
+            print(f"Skipping memory '{memory_key}' due to similarity with '{recent_key}'")
             return
 
-    # Store full memory content
-    cursor.execute("INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, user_input))
-    cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, new_embedding.tobytes()))
-    memory_index.add_memory(key, new_embedding)
+    # Simple ranking mechanism: Check if the memory is too vague
+    if len(value.split()) < 5:  # Example condition for vagueness
+        print(f"Skipping memory '{memory_key}' because it is too vague.")
+        return
 
-    print("Top FAISS keys now:", memory_index.list_keys()[:3])
+    cursor.execute("INSERT OR REPLACE INTO memory (key, value, memory_type) VALUES (?, ?, ?)", (memory_key, value, memory_type))
+    cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding, source_text) VALUES (?, ?, ?)", (memory_key, new_embedding.tobytes(), user_input))  # Add source_text
+    cursor.execute("INSERT INTO session_memories (session_id, key) VALUES (?, ?)", (session_id, memory_key))
+    memory_index.add_memory(memory_key, new_embedding)
+    print("Top FAISS keys now:", memory_index.list_keys())
+    # Print the top 3 keys in memory_index for verification
+    print("Top 3 keys in memory_index:", memory_index.list_keys()[:3])
+
     conn.commit()
-    
-   
+    return memory_key
 
 def generate_response(user_input, conn=None):
     emotion = detect_emotion(user_input)
@@ -110,6 +116,15 @@ def conversation_mode(user_input, conn):
     # Retrieve similar memories with emotional context
     similar_memories = retrieve_similar_memories(user_input, conn)
     context = " ".join(similar_memories)
+
+    # Display context to the user and ask for confirmation
+    print("Retrieved context:")
+    print(context)
+    confirmation = input("Is this context correct? (yes/no): ").strip().lower()
+
+    if confirmation != 'yes':
+        return "Let's try to refine the context. How can I assist you further?"
+
     response = generate_response(user_input, context)
     return response
 

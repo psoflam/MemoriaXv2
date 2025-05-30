@@ -80,7 +80,7 @@ def init_db():
     conn.commit()
     return conn
 
-def store_memory(conn, session_id, user_input, value, memory_index):
+def store_memory(conn, session_id, user_input, value, memory_index, memory_type='fact'):
     cursor = conn.cursor()
     memory_key = f"entry_{uuid.uuid4()}"  # Generate a UUID key with prefix 'entry_'
     new_embedding = embed_text(value)
@@ -100,7 +100,7 @@ def store_memory(conn, session_id, user_input, value, memory_index):
             print(f"Skipping memory '{memory_key}' due to similarity with '{recent_key}'")
             return
 
-    cursor.execute("INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (memory_key, value))
+    cursor.execute("INSERT OR REPLACE INTO memory (key, value, memory_type) VALUES (?, ?, ?)", (memory_key, value, memory_type))
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding, source_text) VALUES (?, ?, ?)", (memory_key, new_embedding.tobytes(), user_input))  # Add source_text
     cursor.execute("INSERT INTO session_memories (session_id, key) VALUES (?, ?)", (session_id, memory_key))
     memory_index.add_memory(memory_key, new_embedding)
