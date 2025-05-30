@@ -72,12 +72,12 @@ def retrieve_memory(conn, key):
     result = cursor.fetchone()
     return result[0] if result else None
 
-def store_in_db(conn, user_input, response, emotion):
+def store_in_db(conn, session_id, user_input, response, emotion):
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO messages (user_input, response, emotion)
-        VALUES (?, ?, ?)
-    """, (user_input, response, emotion))
+        INSERT INTO session_memories (session_id, key, confirmed)
+        VALUES (?, ?, 0)
+    """, (session_id, user_input))
     conn.commit()
 
 def store_session_memory(conn, session_id, key):
@@ -111,3 +111,11 @@ def summarize_session(conn, session_id):
         remember = input("Remember this? [y/n]: ")
         if remember.lower() == 'y':
             store_memory(conn, message['user_input'], message['response'], message['emotion'])
+
+def fetch_recent_memory_context(conn, user_input):
+    try:
+        similar = retrieve_similar_memories(conn, user_input)
+        return "\n".join(similar) if similar else "No relevant memories found."
+    except Exception as e:
+        print(f"Error fetching memory context: {e}")
+        return "No context available"

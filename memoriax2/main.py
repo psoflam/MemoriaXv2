@@ -20,7 +20,7 @@ def main():
         print(f"[{timestamp}] You: {user_input}")
 
         # Process the user input and get the response from the chatbot
-        response = process_input(user_input, conn, session_id)
+        response, emotion = process_input(user_input, conn, session_id)
         print(f"[{timestamp}] Bot: {response}")
 
         # Store each response in the current session
@@ -28,7 +28,7 @@ def main():
 
         # After each turn, detect emotion and store input, response, emotion
         # process_turn(conn, user_input, response)  # Removed as redundant
-        log_session_message(conn, session_id, user_input, response)
+        log_session_message(conn, session_id, user_input, response, emotion)
 
         # End session if user types 'exit'
         if user_input.lower() == 'exit':

@@ -11,12 +11,12 @@ def process_input(user_input, conn, session_id):
         emotion = detect_emotion(user_input)
         response = chat_with_user(user_input, context, emotion)
 
-        # Log the full turn
+        # Log the turn
         store_in_db(conn, session_id, user_input, response, emotion)
-        return response
+        return response, emotion
     except Exception as e:
         print(f"Error processing input: {e}")
-        return "I'm sorry, something went wrong."
+        return "I'm sorry, something went wrong.", None
 
 def store_memory(user_input, response):
     emotion = detect_emotion(user_input)
@@ -82,12 +82,19 @@ def chat_with_user(user_input, context, emotion):
 
 def summarize_session(conn, session_id):
     try:
+        print(f"Session ID: {session_id}")  # Log the session_id
         cursor = conn.cursor()
         cursor.execute("""
             SELECT key FROM session_memories
             WHERE session_id = ? AND confirmed = 0
         """, (session_id,))
         potential_memories = cursor.fetchall()
+
+        print(f"Number of potential memories fetched: {len(potential_memories)}")  # Print number of fetched rows
+
+        if not potential_memories:
+            print("No potential memories found.")
+            return
 
         print("Here's what I might remember from today:")
         for mem in potential_memories:
