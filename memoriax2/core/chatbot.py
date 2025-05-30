@@ -7,11 +7,26 @@ import numpy as np
 import random
 import uuid
 from memoriax2.memory.index_engine import MemoryIndex, memory_index
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 memory_index = MemoryIndex(384)  # or whatever your embedding dimension is
 
 # Add startup log
 print("MemoryIndex initialized with:", len(memory_index), "items")
+
+# Load the tokenizer and model
+model_name = 'distilgpt2'
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained(model_name)
+
+# Add a global variable for persona
+persona = "compassionate, curious"
+
+# Function to set persona
+def set_persona(new_persona):
+    global persona
+    persona = new_persona
+    print(f"Persona set to: {persona}")
 
 def process_input(user_input, conn, session_id, memory_index):
     try:
@@ -76,7 +91,7 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
 def generate_response(user_input, conn=None):
     emotion = detect_emotion(user_input)
     context = ""  # placeholder for memory/context logic
-    base = generate_base_response(user_input + " " + context)
+    base = generate_base_response(user_input, context, emotion)
 
     if emotion == "sad":
         response = make_response_more_empathetic(base)
@@ -85,9 +100,25 @@ def generate_response(user_input, conn=None):
 
     return response
 
-def generate_base_response(user_input):
-    # Basic implementation for generating a base response
-    return f"Response to: {user_input}"
+def generate_base_response(user_input, context, emotion):
+    # Prepare the prompt with persona
+    prompt = f"Persona: {persona}\nContext: {context}\nEmotion: {emotion}\nUser: {user_input}\nMemoriaX:"
+    
+    # Tokenize the input
+    inputs = tokenizer(prompt, return_tensors='pt')
+    
+    # Generate the response
+    outputs = model.generate(**inputs, max_length=150, num_return_sequences=1)
+    
+    # Decode the response
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    # Fallback logic
+    if len(response.split()) < 5 or "I'm not sure" in response:
+        print("[FALLBACK] Low confidence or poor fluency detected.")
+        response = "I'm sorry, I didn't quite catch that. Could you please rephrase?"
+    
+    return response
 
 def make_response_more_calming(response):
     # Basic implementation to make the response more calming
@@ -130,7 +161,7 @@ def conversation_mode(user_input, conn):
 
 def chat_with_user(user_input, context, emotion):
     prompt = f"User: {user_input}\n---\nContext: {context}\nEmotion: {emotion}\nMemoriaX:"
-    response = generate_base_response(prompt)
+    response = generate_base_response(user_input, context, emotion)
     if emotion == 'sad':
         response = add_empathetic_tone(response)
     return response

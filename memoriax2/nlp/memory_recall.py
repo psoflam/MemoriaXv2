@@ -22,7 +22,7 @@ def store_embedding(conn, key, embedding):
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, embedding.tobytes()))
     conn.commit()
 
-def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_memory_limit=5):
+def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_memory_limit=5, requested_type=None):
     try:
         # Embed the input text
         input_embedding = embed_text(input_text)
@@ -45,12 +45,16 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         # Fetch memory texts and keys from the database using the retrieved IDs
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT m.key, mem.value 
+            SELECT m.key, mem.value, mem.memory_type
             FROM memory_embeddings m 
             JOIN memory mem ON m.key = mem.key 
             WHERE m.key IN ({})
         """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()
+
+        # Filter by requested type if specified
+        if requested_type:
+            top_memories = [mem for mem in top_memories if mem[2] == requested_type]
 
         # Prioritize memories with matching emotional tone
         input_emotion = detect_emotion(input_text)
@@ -71,7 +75,7 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         # Calculate similarity scores and append to memory context lines
         final_memories_with_scores = []
         for mem in final_memories:
-            key, text = mem
+            key, text, _ = mem
             embedding = embed_text(text)
             score = np.dot(input_embedding, embedding) / (np.linalg.norm(input_embedding) * np.linalg.norm(embedding))
             final_memories_with_scores.append((key, text, score))
@@ -79,6 +83,9 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         # Log each matched memory and its score
         for key, text, score in final_memories_with_scores:
             print(f"Matched memory: {text} (score: {score})")
+
+        # Add confidence tags
+        final_memories_with_scores = [(key, f"{text} [{score:.2f}]") for key, text, score in final_memories_with_scores]
 
         return final_memories_with_scores
     except Exception as e:
