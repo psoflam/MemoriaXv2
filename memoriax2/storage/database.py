@@ -55,6 +55,14 @@ def init_db():
                         emotion TEXT
                       )''')
 
+    # Add the memory_embeddings table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS memory_embeddings (
+            key TEXT PRIMARY KEY,
+            embedding BLOB
+        )
+    ''')
+
     conn.commit()
     return conn
 
@@ -167,12 +175,16 @@ def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
         # Query MemoryIndex instead of calculating cosine similarities manually
         top_memory_ids = memory_index.query_similar(input_embedding, top_k)
 
+        # Debug print for the query and top_memory_ids
+        print("Query:", "SELECT m.key, sm.user_input FROM memory_embeddings m JOIN session_messages sm ON m.key = sm.user_input WHERE m.key IN ({})".format(",".join("?" for _ in top_memory_ids)))
+        print("Embedding keys:", top_memory_ids)
+        
         # Fetch memory texts and keys from the database using the retrieved IDs
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT m.key, sm.user_input 
-            FROM memory_embeddings m 
-            JOIN session_messages sm ON m.key = sm.user_input 
+            SELECT m.key, sm.user_input
+            FROM memory_embeddings m
+            JOIN session_messages sm ON m.key = sm.user_input
             WHERE m.key IN ({})
         """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()
@@ -193,3 +205,8 @@ def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
     except Exception as e:
         print(f"Error retrieving similar memories: {e}")
         return []
+
+def log_recent_memory(conn, key):
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO recent_memories (key) VALUES (?)", (key,))
+    conn.commit()

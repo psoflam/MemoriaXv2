@@ -3,6 +3,7 @@ import numpy as np
 import sqlite3
 from memoriax2.memory.index_engine import MemoryIndex
 from memoriax2.nlp.embedding import embed_text
+from memoriax2.nlp.emotion import detect_emotion
 
 # Load the pre-trained model
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -30,9 +31,9 @@ def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
         # Fetch memory texts and keys from the database using the retrieved IDs
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT m.key, s.user_input 
+            SELECT m.key, sm.user_input 
             FROM memory_embeddings m 
-            JOIN session_memories s ON m.key = s.key 
+            JOIN session_messages sm ON m.key = sm.user_input 
             WHERE m.key IN ({})
         """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()
@@ -46,7 +47,8 @@ def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
 
         # Limit repetition: Exclude recently used memories
         cursor.execute("SELECT key FROM recent_memories ORDER BY timestamp DESC LIMIT ?", (recent_memory_limit,))
-        recent_memories = {row[0] for row in cursor.fetchall()}
+        rows = cursor.fetchall()
+        recent_memories = {row[0] for row in rows} if rows else set()
         final_memories = [mem for mem in prioritized_memories if mem[0] not in recent_memories]
 
         return final_memories
