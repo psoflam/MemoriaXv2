@@ -105,13 +105,13 @@ def summarize_session(conn, session_id):
             if user_input.lower() == 'yes':
                 mark_confirmed(conn, session_id, mem[0])
                 val = retrieve_memory(conn, mem[0])
-                store_memory(conn, mem[0], val)
+                store_in_db(conn, session_id, mem[0], val, "neutral")  # Updated to use store_in_db
     except Exception as e:
         print(f"Error summarizing session: {e}")
 
 def fetch_recent_memory_context(conn, user_input):
     try:
-        similar = retrieve_similar_memories(conn, user_input)
+        similar = retrieve_similar_memories(user_input, conn)
         return "\n".join(similar) if similar else "No relevant memories found."
     except Exception as e:
         print(f"Error fetching memory context: {e}")

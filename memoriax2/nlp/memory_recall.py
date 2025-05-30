@@ -29,12 +29,20 @@ def retrieve_similar_memories(input_text, conn, top_k=3, recent_memory_limit=5):
 
         # Fetch memory texts and keys from the database using the retrieved IDs
         cursor = conn.cursor()
-        cursor.execute("SELECT key, text FROM memory_embeddings WHERE key IN ({})".format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
+        cursor.execute("""
+            SELECT m.key, s.user_input 
+            FROM memory_embeddings m 
+            JOIN session_memories s ON m.key = s.key 
+            WHERE m.key IN ({})
+        """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()
 
         # Prioritize memories with matching emotional tone
         input_emotion = detect_emotion(input_text)
-        prioritized_memories = [mem for mem in top_memories if detect_emotion(mem[1]) == input_emotion]
+        prioritized_memories = [
+            mem for mem in top_memories 
+            if detect_emotion(mem[1]) == input_emotion and mem[0].strip().lower() != "exit"
+        ]
 
         # Limit repetition: Exclude recently used memories
         cursor.execute("SELECT key FROM recent_memories ORDER BY timestamp DESC LIMIT ?", (recent_memory_limit,))
