@@ -43,7 +43,7 @@ def process_input(user_input, conn, session_id, memory_index):
         print(f"Generated memory key: {generated_key}")
 
         # Log the turn
-        store_in_db(conn, session_id, generated_key, response, emotion)
+        store_in_db(conn, user_input, response, emotion)
         print("Logged the turn in the database.")
 
         # Store memory explicitly
@@ -103,28 +103,18 @@ def generate_response(user_input, conn=None):
     else:
         response = f"Calmly, {base}"
 
+    # Example of concise logging
+    print(f"[LOG] Processed '{user_input}' → Emotion: {emotion}")
+
     return response
 
-def generate_base_response(user_input, context, emotion):
-    # Prepare the prompt with persona
-    prompt = f"Persona: {persona}\nContext: {context}\nEmotion: {emotion}\nUser: {user_input}\nMemoriaX:"
-    
-    # Tokenize the input
-    inputs = tokenizer(prompt, return_tensors='pt')
-    
-    # Generate the response
-    outputs = model.generate(**inputs, max_length=150, num_return_sequences=1)
-    
-    # Ensure response is generated only once and not repeated
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    # Remove any logic that might cause repetition
-    # Ensure the response is not appended or modified in a way that duplicates it
-    # Fallback logic remains the same
-    if len(response.split()) < 5 or "I'm not sure" in response:
-        print("[FALLBACK] Low confidence or poor fluency detected.")
-        response = "I'm sorry, I didn't quite catch that. Could you please rephrase?"
-    
-    return response
+def generate_base_response(user_input, context="", emotion="neutral"):
+    prompt = f"""Conversation (Persona: {persona}):
+User: {user_input}
+Context: {context if context else "None"}
+Emotion: {emotion}
+Response:"""
+    return generate_with_model(prompt)
 
 def make_response_more_calming(response):
     # Basic implementation to make the response more calming
@@ -223,6 +213,9 @@ def add_empathetic_tone(response):
 
 def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_memory_limit=5):
     try:
+        # Define input_emotion at the beginning of retrieve_similar_memories
+        input_emotion = detect_emotion(input_text)
+
         # Embed the input text
         input_embedding = embed_text(input_text)
         
@@ -248,10 +241,17 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()
 
-        # Prioritize memories with matching emotional tone
-        input_emotion = detect_emotion(input_text)
+        # Add a de-dupe filter in retrieve_similar_memories
+        seen = set()
+        unique_memories = []
+        for memory in top_memories:
+            if memory not in seen:
+                unique_memories.append(memory)
+                seen.add(memory)
+
+        # Use unique_memories instead of top_memories for further processing
         prioritized_memories = [
-            mem for mem in top_memories 
+            mem for mem in unique_memories 
             if detect_emotion(mem[1]) == input_emotion and mem[0].strip().lower() != "exit"
         ]
 
@@ -276,3 +276,39 @@ def load_index_from_db(self, conn):
         self.add_memory(key, vec)
 
     #print(f"[MemoryIndex] Loaded {len(rows)} items from DB into FAISS index.")
+
+def store_in_db(conn, user_input, response, emotion):
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) FROM messages
+        WHERE user_input=? AND response=? AND emotion=?
+    """, (user_input, response, emotion))
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("""
+            INSERT INTO messages (user_input, response, emotion)
+            VALUES (?, ?, ?)
+        """, (user_input, response, emotion))
+        conn.commit()
+
+def generate_with_model(prompt):
+    inputs = tokenizer(prompt, return_tensors='pt')
+    outputs = model.generate(
+        **inputs,
+        max_length=60,
+        do_sample=True,
+        top_k=50,
+        top_p=0.9,
+        temperature=0.8,
+        num_return_sequences=1,
+        pad_token_id=tokenizer.eos_token_id
+    )
+    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    result = decoded[len(prompt):].strip()  # Remove the echoed prompt
+    return sanitize_response(result)
+
+def sanitize_response(text):
+    # Prevent obvious loops or identity spam
+    lines = text.splitlines()
+    unique_lines = list(dict.fromkeys(lines))
+    filtered = [line for line in unique_lines if not any(bad in line.lower() for bad in ["i am a human", "i am memoriax", "i am ai"])]
+    return "\n".join(filtered[:3]).strip()
