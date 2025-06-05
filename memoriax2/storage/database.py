@@ -21,6 +21,13 @@ load_dotenv()
 memory_index = MemoryIndex()
 
 def init_db():
+    """
+    Initialize the database and create necessary tables if they do not exist.
+    This function also ensures that the database schema is up-to-date by adding
+    any missing columns to existing tables.
+    Returns:
+        sqlite.Connection: A connection object to the database.
+    """
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, '..', 'memory.db')
     conn = sqlite.connect(os.path.normpath(db_path))  # Connect to the (possibly encrypted) database
@@ -76,6 +83,22 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    conn.commit()
+    ensure_schema(conn)
+    return conn
+
+def ensure_schema(conn):
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(memory)")
+    cols = [c[1] for c in cursor.fetchall()]
+    if "memory_type" not in cols:
+        cursor.execute("ALTER TABLE memory ADD COLUMN memory_type TEXT DEFAULT 'fact'")
+    # Add similar logic for other optional columns if desired
+    cursor.execute("PRAGMA table_info(memory_embeddings)")
+    cols = [c[1] for c in cursor.fetchall()]
+    if "source_text" not in cols:
+        cursor.execute("ALTER TABLE memory_embeddings ADD COLUMN source_text TEXT")
 
     conn.commit()
     return conn

@@ -32,6 +32,7 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
             print("[EMBEDDING ERROR] Failed to embed input_text:", input_text)
             return []
 
+        # Log the embedding shape
         print("Embedding shape:", input_embedding.shape)
         print("Index length:", len(memory_index))
 
@@ -51,6 +52,9 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
             WHERE m.key IN ({})
         """.format(",".join("?" for _ in top_memory_ids)), top_memory_ids)
         top_memories = cursor.fetchall()
+
+        # Log the retrieved memories
+        print("Retrieved memories:", top_memories)
 
         # Filter by requested type if specified
         if requested_type:

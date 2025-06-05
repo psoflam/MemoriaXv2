@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from memoriax2.nlp.memory_recall import embed_text, store_embedding, retrieve_similar_memories
 from memoriax2.storage.database import init_db
+from memoriax2.memory.index_engine import MemoryIndex
 
 class TestMemoryRecall(unittest.TestCase):
 
@@ -13,6 +14,8 @@ class TestMemoryRecall(unittest.TestCase):
         cursor.execute('''CREATE TABLE IF NOT EXISTS memory_embeddings
                           (key TEXT PRIMARY KEY, embedding BLOB)''')
         self.conn.commit()
+        # Initialize MemoryIndex
+        self.memory_index = MemoryIndex(384)
 
     def test_embed_text(self):
         # Test embedding generation
@@ -37,15 +40,20 @@ class TestMemoryRecall(unittest.TestCase):
         store_embedding(self.conn, key2, embedding2)
         store_embedding(self.conn, key3, embedding3)
 
+        # Add embeddings to MemoryIndex
+        self.memory_index.add_memory(key1, embedding1)
+        self.memory_index.add_memory(key2, embedding2)
+        self.memory_index.add_memory(key3, embedding3)
+
         # Retrieve similar memories
-        similar_memories = retrieve_similar_memories("I love coding.", self.conn, top_k=1)
-        self.assertIn(key1, similar_memories)  # Expecting key1 to be the most similar
+        similar_memories = retrieve_similar_memories("I love coding.", self.conn, self.memory_index, top_k=1)
+        self.assertIn(key1, [mem[0] for mem in similar_memories])  # Expecting key1 to be the most similar
 
-        similar_memories = retrieve_similar_memories("I'm feeling down today.", self.conn, top_k=1)
-        self.assertIn(key2, similar_memories)  # Expecting key2 to be the most similar
+        similar_memories = retrieve_similar_memories("I'm feeling down today.", self.conn, self.memory_index, top_k=1)
+        self.assertIn(key2, [mem[0] for mem in similar_memories])  # Expecting key2 to be the most similar
 
-        similar_memories = retrieve_similar_memories("Do you remember our vacation to Japan?", self.conn, top_k=1)
-        self.assertIn(key3, similar_memories)  # Expecting key3 to be the most similar
+        similar_memories = retrieve_similar_memories("Do you remember our vacation to Japan?", self.conn, self.memory_index, top_k=1)
+        self.assertIn(key3, [mem[0] for mem in similar_memories])  # Expecting key3 to be the most similar
 
     def test_edge_cases(self):
         # Test empty input
@@ -78,10 +86,13 @@ class TestMemoryRecall(unittest.TestCase):
         embedding = embed_text(text)
         store_embedding(self.conn, key, embedding)
 
+        # Add embedding to MemoryIndex
+        self.memory_index.add_memory(key, embedding)
+
         # Retrieve multiple times
         for _ in range(10):
-            similar_memories = retrieve_similar_memories(text, self.conn, top_k=1)
-            self.assertIn(key, similar_memories)
+            similar_memories = retrieve_similar_memories(text, self.conn, self.memory_index, top_k=1)
+            self.assertIn(key, [mem[0] for mem in similar_memories])
 
     def test_memory_recall_for_similar_input(self):
         # Store a memory
@@ -90,9 +101,12 @@ class TestMemoryRecall(unittest.TestCase):
         embedding = embed_text(original_text)
         store_embedding(self.conn, key, embedding)
 
+        # Add embedding to MemoryIndex
+        self.memory_index.add_memory(key, embedding)
+
         # Query with a semantically similar input
         similar_input = "What about Japan?"
-        similar_memories = retrieve_similar_memories(similar_input, self.conn, top_k=1)
+        similar_memories = retrieve_similar_memories(similar_input, self.conn, self.memory_index, top_k=1)
 
         # Check if the original memory is recalled
         self.assertIn(key, [mem[0] for mem in similar_memories])  # Expecting the key to be recalled
@@ -100,15 +114,13 @@ class TestMemoryRecall(unittest.TestCase):
     def test_query_similar_type_error(self):
         # Test that passing a string raises a TypeError
         with self.assertRaises(TypeError):
-            memory_index = MemoryIndex(384)
-            memory_index.query_similar("this should be an array", top_k=1)
+            self.memory_index.query_similar("this should be an array", top_k=1)
 
     def test_query_similar_with_valid_vector(self):
         # Test that passing a valid np.ndarray works correctly
-        memory_index = MemoryIndex(384)
         vector = np.random.rand(384).astype(np.float32)  # Create a random vector with the correct dtype
-        memory_index.add_memory("test_key", vector)
-        similar_keys = memory_index.query_similar(vector, top_k=1)
+        self.memory_index.add_memory("test_key", vector)
+        similar_keys = self.memory_index.query_similar(vector, top_k=1)
         self.assertIn("test_key", similar_keys)
 
 if __name__ == '__main__':
