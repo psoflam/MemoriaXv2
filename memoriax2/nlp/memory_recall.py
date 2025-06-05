@@ -39,6 +39,9 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         # Use input_embedding instead of input_text
         top_memory_ids = memory_index.query_similar(input_embedding, top_k)
 
+        # Debug print for the returned key list
+        print("Returned key list from query_similar:", top_memory_ids)
+
         if not top_memory_ids:
             print("No results from FAISS")
             return []
@@ -67,11 +70,17 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
             if detect_emotion(mem[1]) == input_emotion and mem[0].strip().lower() != "exit"
         ]
 
+        # Log prioritized memories
+        print("Prioritized memories:", prioritized_memories)
+
         # Limit repetition: Exclude recently used memories
         cursor.execute("SELECT key FROM recent_memories ORDER BY timestamp DESC LIMIT ?", (recent_memory_limit,))
         rows = cursor.fetchall()
         recent_memories = {row[0] for row in rows} if rows else set()
         final_memories = [mem for mem in prioritized_memories if mem[0] not in recent_memories]
+
+        # Log final memories
+        print("Final memories after excluding recent ones:", final_memories)
 
         # Remove duplicate entries
         final_memories = list(set(final_memories))

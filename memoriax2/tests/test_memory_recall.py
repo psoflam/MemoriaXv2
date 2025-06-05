@@ -16,6 +16,7 @@ class TestMemoryRecall(unittest.TestCase):
         self.conn.commit()
         # Initialize MemoryIndex
         self.memory_index = MemoryIndex(384)
+        print("Setup complete: Database and MemoryIndex initialized.")
 
     def test_embed_text(self):
         # Test embedding generation
@@ -39,20 +40,25 @@ class TestMemoryRecall(unittest.TestCase):
         store_embedding(self.conn, key1, embedding1)
         store_embedding(self.conn, key2, embedding2)
         store_embedding(self.conn, key3, embedding3)
+        print("Embeddings stored in database.")
 
         # Add embeddings to MemoryIndex
         self.memory_index.add_memory(key1, embedding1)
         self.memory_index.add_memory(key2, embedding2)
         self.memory_index.add_memory(key3, embedding3)
+        print("Embeddings added to MemoryIndex.")
 
         # Retrieve similar memories
         similar_memories = retrieve_similar_memories("I love coding.", self.conn, self.memory_index, top_k=1)
+        print("Retrieved similar memories for 'I love coding.':", similar_memories)
         self.assertIn(key1, [mem[0] for mem in similar_memories])  # Expecting key1 to be the most similar
 
         similar_memories = retrieve_similar_memories("I'm feeling down today.", self.conn, self.memory_index, top_k=1)
+        print("Retrieved similar memories for 'I'm feeling down today.':", similar_memories)
         self.assertIn(key2, [mem[0] for mem in similar_memories])  # Expecting key2 to be the most similar
 
         similar_memories = retrieve_similar_memories("Do you remember our vacation to Japan?", self.conn, self.memory_index, top_k=1)
+        print("Retrieved similar memories for 'Do you remember our vacation to Japan?':", similar_memories)
         self.assertIn(key3, [mem[0] for mem in similar_memories])  # Expecting key3 to be the most similar
 
     def test_edge_cases(self):
@@ -78,6 +84,7 @@ class TestMemoryRecall(unittest.TestCase):
             embedding = embed_text(text)
             store_embedding(self.conn, f"key_{_}", embedding)
         end_time = time.time()
+        print(f"Performance test completed in {end_time - start_time} seconds.")
         self.assertTrue((end_time - start_time) < 10)  # Temporarily increased to 10 seconds for debugging
 
     def test_consistency(self):
@@ -85,13 +92,16 @@ class TestMemoryRecall(unittest.TestCase):
         key = "consistency_key"
         embedding = embed_text(text)
         store_embedding(self.conn, key, embedding)
+        print(f"Stored embedding for key '{key}'.")
 
         # Add embedding to MemoryIndex
         self.memory_index.add_memory(key, embedding)
+        print(f"Added embedding to MemoryIndex for key '{key}'.")
 
         # Retrieve multiple times
         for _ in range(10):
             similar_memories = retrieve_similar_memories(text, self.conn, self.memory_index, top_k=1)
+            print(f"Retrieved similar memories for '{text}':", similar_memories)
             self.assertIn(key, [mem[0] for mem in similar_memories])
 
     def test_memory_recall_for_similar_input(self):
@@ -100,13 +110,16 @@ class TestMemoryRecall(unittest.TestCase):
         key = "entry_test"
         embedding = embed_text(original_text)
         store_embedding(self.conn, key, embedding)
+        print(f"Stored embedding for key '{key}'.")
 
         # Add embedding to MemoryIndex
         self.memory_index.add_memory(key, embedding)
+        print(f"Added embedding to MemoryIndex for key '{key}'.")
 
         # Query with a semantically similar input
         similar_input = "What about Japan?"
         similar_memories = retrieve_similar_memories(similar_input, self.conn, self.memory_index, top_k=1)
+        print(f"Retrieved similar memories for '{similar_input}':", similar_memories)
 
         # Check if the original memory is recalled
         self.assertIn(key, [mem[0] for mem in similar_memories])  # Expecting the key to be recalled
