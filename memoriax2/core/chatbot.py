@@ -30,22 +30,29 @@ def set_persona(new_persona):
 
 def process_input(user_input, conn, session_id, memory_index):
     try:
+        print(f"Processing input: {user_input}")
         context = fetch_recent_memory_context(conn, user_input, memory_index)
+        print(f"Retrieved context: {context}")
         emotion = detect_emotion(user_input)
+        print(f"Detected emotion: {emotion}")
         response = chat_with_user(user_input, context, emotion)
+        print(f"Generated response: {response}")
 
         # Generate a memory key
         generated_key = f"entry_{uuid.uuid4()}"
+        print(f"Generated memory key: {generated_key}")
 
         # Log the turn
         store_in_db(conn, session_id, generated_key, response, emotion)
+        print("Logged the turn in the database.")
 
         # Store memory explicitly
         store_memory(conn, session_id, user_input, response, memory_index)
+        print("Stored memory explicitly.")
 
-        # After storing memory, print index status and list keys
-        memory_index.print_index_status()
-        print("Current keys:", memory_index.list_keys())
+        # Commented out for cleaner output, can be re-enabled if needed
+        # memory_index.print_index_status()
+        # print("Current keys:", memory_index.list_keys())
 
         return response, emotion
     except Exception as e:
@@ -81,10 +88,8 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding, source_text) VALUES (?, ?, ?)", (memory_key, new_embedding.tobytes(), user_input))  # Add source_text
     cursor.execute("INSERT INTO session_memories (session_id, key) VALUES (?, ?)", (session_id, memory_key))
     memory_index.add_memory(memory_key, new_embedding)
-    print("Top FAISS keys now:", memory_index.list_keys())
-    # Print the top 3 keys in memory_index for verification
-    print("Top 3 keys in memory_index:", memory_index.list_keys()[:3])
-
+    # Commented out for cleaner output, can be re-enabled if needed
+    # print("Memory added. Total count:", len(memory_index))
     conn.commit()
     return memory_key
 
@@ -269,4 +274,4 @@ def load_index_from_db(self, conn):
         vec = np.frombuffer(blob, dtype=np.float32)
         self.add_memory(key, vec)
 
-    print(f"[MemoryIndex] Loaded {len(rows)} items from DB into FAISS index.")
+    #print(f"[MemoryIndex] Loaded {len(rows)} items from DB into FAISS index.")
