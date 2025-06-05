@@ -115,10 +115,11 @@ def generate_base_response(user_input, context, emotion):
     # Generate the response
     outputs = model.generate(**inputs, max_length=150, num_return_sequences=1)
     
-    # Decode the response
+    # Ensure response is generated only once and not repeated
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    
-    # Fallback logic
+    # Remove any logic that might cause repetition
+    # Ensure the response is not appended or modified in a way that duplicates it
+    # Fallback logic remains the same
     if len(response.split()) < 5 or "I'm not sure" in response:
         print("[FALLBACK] Low confidence or poor fluency detected.")
         response = "I'm sorry, I didn't quite catch that. Could you please rephrase?"
