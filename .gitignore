@@ -6,3 +6,8 @@ __pycache__/
 *.pyw
 *.pyz
 /memoriax2/data/results/**
+node_modules
+memoriax2/models/mistral-7b-instruct-v0.1.Q4_0.gguf
+train_data_memoria.json
+generate_memoria_training_data.py
+batch_generation_plan.json
