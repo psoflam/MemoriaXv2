@@ -11,13 +11,11 @@ import faiss
 import numpy as np
 import random
 import uuid
-from memoriax2.memory.index_engine import MemoryIndex, memory_index
+from memoriax2.memory.index_engine import get_memory_index
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-memory_index = MemoryIndex(384)  # or whatever your embedding dimension is
-
-# Add startup log
-print("MemoryIndex initialized with:", len(memory_index), "items")
+# Add startup log for the shared MemoryIndex
+print("MemoryIndex initialized with:", len(get_memory_index()), "items")
 
 # Load the tokenizer and model
 model_name = 'distilgpt2'

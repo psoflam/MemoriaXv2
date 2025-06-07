@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer, util
 import numpy as np
 import sqlite3
-from memoriax2.memory.index_engine import MemoryIndex
+
 from memoriax2.nlp.embedding import embed_text
 from memoriax2.nlp.emotion import detect_emotion
 
@@ -14,9 +14,8 @@ def get_embedding_dim():
 
 # Initialize MemoryIndex with the correct embedding dimension at runtime
 embedding_dim = get_embedding_dim()
-memory_index = MemoryIndex(embedding_dim)
 
-def store_embedding(conn, key, embedding):
+def store_embedding(conn, key, embedding)
     """Store the embedding in the database."""
     cursor = conn.cursor()
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, embedding.tobytes()))
