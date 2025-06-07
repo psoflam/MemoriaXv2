@@ -5,7 +5,7 @@ from memoriax2.storage.database import init_db, store_session_memory, summarize_
 from memoriax2.core.chatbot import process_input, summarize_session
 import datetime
 import uuid
-from memoriax2.memory.index_engine import MemoryIndex
+from memoriax2.memory.index_engine import get_memory_index
 
 # Generate a random session_id at startup
 session_id = str(uuid.uuid4())
@@ -14,8 +14,8 @@ def main():
     # Initialize the database connection
     conn = init_db()
 
-    # Initialize MemoryIndex instance
-    memory_index = MemoryIndex(384)  # Assuming 384 is the embedding dimension
+    # Initialize the shared MemoryIndex instance
+    memory_index = get_memory_index(384)  # Assuming 384 is the embedding dimension
     memory_index.load_index_from_db(conn)  # Load data from the database
 
     while True:

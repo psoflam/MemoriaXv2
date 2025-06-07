@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from memoriax2.memory.index_engine import MemoryIndex
+
 from memoriax2.nlp.emotion import detect_emotion
 from memoriax2.nlp.memory_recall import embed_text
 import numpy as np
@@ -17,8 +17,6 @@ except ImportError:
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize MemoryIndex
-memory_index = MemoryIndex()
 
 def init_db():
     """
@@ -207,9 +205,9 @@ def summarize_session(conn, session_id):
     except Exception as e:
         print(f"Error summarizing session: {e}")
 
-def fetch_recent_memory_context(conn, user_input):
+def fetch_recent_memory_context(conn, user_input, memory_index):
     try:
-        similar = retrieve_similar_memories(conn, user_input)
+        similar = retrieve_similar_memories(user_input, conn, memory_index)
         return "\n".join(similar) if similar else "No relevant memories found."
     except Exception as e:
         print(f"Error fetching memory context: {e}")
