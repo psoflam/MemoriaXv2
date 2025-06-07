@@ -77,5 +77,12 @@ class MemoryIndex:
 
         print(f"[MemoryIndex] Loaded {len(rows)} items from DB into FAISS index.")
 
-# Define memory_index at the module level
-memory_index = MemoryIndex(384)
+_memory_index: MemoryIndex | None = None
+
+
+def get_memory_index(embedding_dim: int = 384) -> MemoryIndex:
+    """Return the singleton MemoryIndex instance."""
+    global _memory_index
+    if _memory_index is None:
+        _memory_index = MemoryIndex(embedding_dim)
+    return _memory_index
