@@ -1,5 +1,10 @@
 from memoriax2.nlp.processor import analyze_input  # Import the analyze_input function from the memoriax2.nlp.processor module
-from memoriax2.storage.database import mark_confirmed, store_in_db, store_memory, retrieve_memory  # Import store_memory and retrieve_memory functions from the memoriax2.storage.database module
+from memoriax2.storage.database import (
+    mark_confirmed,
+    store_in_db,
+    store_memory,
+    retrieve_memory,
+)
 from memoriax2.nlp.emotion import detect_emotion
 from memoriax2.nlp.memory_recall import retrieve_similar_memories, embed_text
 import faiss
@@ -42,8 +47,8 @@ def process_input(user_input, conn, session_id, memory_index):
         generated_key = f"entry_{uuid.uuid4()}"
         print(f"Generated memory key: {generated_key}")
 
-        # Log the turn
-        store_in_db(conn, user_input, response, emotion)
+        # Log the turn in the messages table
+        store_message_in_db(conn, user_input, response, emotion)
         print("Logged the turn in the database.")
 
         # Store memory explicitly
@@ -277,7 +282,7 @@ def load_index_from_db(self, conn):
 
     #print(f"[MemoryIndex] Loaded {len(rows)} items from DB into FAISS index.")
 
-def store_in_db(conn, user_input, response, emotion):
+def store_message_in_db(conn, user_input, response, emotion):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT COUNT(*) FROM messages

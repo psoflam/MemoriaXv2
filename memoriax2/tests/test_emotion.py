@@ -19,18 +19,18 @@ class TestDatabaseStorage(unittest.TestCase):
     def test_store_in_db(self):
         session_id = "test_session"
         memory_key = "test_key"
-        user_input = "I am happy"
         response = "That's great to hear!"
         emotion = "happy"
-        store_in_db(self.conn, session_id, memory_key, user_input, response, emotion)
+        store_in_db(self.conn, session_id, memory_key, response, emotion)
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM session_messages WHERE session_id=? AND user_input=?", (session_id, memory_key))
         result = cursor.fetchone()
         self.assertIsNotNone(result)
-        self.assertEqual(result[0], session_id)
-        self.assertEqual(result[1], memory_key)
-        self.assertEqual(result[2], response)
-        self.assertEqual(result[3], emotion)
+        # result tuple layout: (id, session_id, user_input, response, emotion)
+        self.assertEqual(result[1], session_id)
+        self.assertEqual(result[2], memory_key)
+        self.assertEqual(result[3], response)
+        self.assertEqual(result[4], emotion)
 
 class TestResponseGeneration(unittest.TestCase):
 
