@@ -127,9 +127,6 @@ def make_response_more_empathetic(response):
     # Basic implementation to make the response more empathetic
     return f"This is an empathetic response: {response}"
 
-def __init__(self, embedding_dim: int):
-    self.index = faiss.IndexFlatL2(embedding_dim)  # Set the index dimension dynamically
-    self.id_map = {}
 
 def conversation_mode(user_input, conn):
     # Check for recent messages
