@@ -1,6 +1,6 @@
 import unittest
 from memoriax2.nlp.emotion import detect_emotion
-from memoriax2.storage.database import store_in_db, init_db
+from memoriax2.db.init import init_db
 from memoriax2.core.chatbot import generate_response
 
 class TestEmotionDetection(unittest.TestCase):

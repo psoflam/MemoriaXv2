@@ -1,6 +1,6 @@
 import json
 from memoriax2.nlp.memory_recall import embed_text, store_embedding
-from memoriax2.storage.database import init_db
+from memoriax2.db.init import init_db
 
 # Initialize the database connection
 conn = init_db()

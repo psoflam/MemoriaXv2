@@ -8,6 +8,7 @@ nlp = spacy.load("en_core_web_sm")
 analyzer = SentimentIntensityAnalyzer()
 
 def detect_emotion(text):
+    """Detect the emotion in the given text."""
     lowered = text.lower()
 
     # Keyword override: basic emotion categories

@@ -6,15 +6,15 @@ cursor = conn.cursor()
 
 # Function to dump all memory entries
 def dump_memory_entries():
-    cursor.execute("SELECT value, type, emotion FROM memory")
+    """Fetch and print all memory entries from the database."""
+    cursor.execute("SELECT value, memory_type, emotion FROM memory")
     memories = cursor.fetchall()
     if not memories:
         print("No memories found.")
         return
 
     print("Memory Entries:")
-    for mem in memories:
-        value, mem_type, emotion = mem
+    for value, mem_type, emotion in memories:
         print(f"- Value: {value}, Type: {mem_type}, Emotion: {emotion}")
 
 # Run the memory dump function if this script is executed

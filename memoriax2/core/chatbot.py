@@ -1,25 +1,22 @@
 import sys
-from memoriax2.nlp.processor import analyze_input  # Import the analyze_input function from the memoriax2.nlp.processor module
-from memoriax2.storage.database import (
-    mark_confirmed,
-    store_in_db,
-    store_memory,
-    retrieve_memory,
-)
-from memoriax2.nlp.emotion import detect_emotion
-from memoriax2.nlp.memory_recall import retrieve_similar_memories, embed_text
-import faiss
-import numpy as np
+import os
 import random
 import uuid
-from memoriax2.memory.index_engine import get_memory_index
+import numpy as np
+import faiss
 from llama_cpp import Llama
-import os
-# from memoriax2.utils.log import silence_prints
-
-# silence_prints()
-
-
+from memoriax2.nlp.processor import analyze_input
+from memoriax2.nlp.emotion import detect_emotion
+from memoriax2.nlp.memory_recall import retrieve_similar_memories, embed_text
+from memoriax2.memory.index_engine import get_memory_index
+from memoriax2.shared.utils_confirm import mark_confirmed
+from memoriax2.shared.utils_db import store_in_db
+from memoriax2.db.init import init_db
+from memoriax2.db.session_logger import log_session_message
+from memoriax2.db.confirm_utils import summarize_session
+from memoriax2.utils.generate import generate_with_model
+from memoriax2.db.memory_store import store_memory, retrieve_memory
+import re
 
 # Add startup log for the shared MemoryIndex
 print("MemoryIndex initialized with:", len(get_memory_index()), "items")
@@ -50,35 +47,79 @@ import builtins
 safe_print = builtins.__dict__['print']
 
 def process_input(user_input, conn, session_id, memory_index):
+    """
+    Process user input to generate a response and store relevant information.
+
+    Args:
+        user_input (str): The input from the user.
+        conn: Database connection object.
+        session_id (str): The current session ID.
+        memory_index: The memory index object.
+
+    Returns:
+        tuple: A tuple containing the response and detected emotion.
+    """
     try:
         safe_print(f"Processing input: {user_input}")
         context = fetch_recent_memory_context(conn, user_input, memory_index)
-        safe_print(f"Retrieved context: {context}")
         emotion = detect_emotion(user_input)
-        safe_print(f"Detected emotion: {emotion}")
         response = chat_with_user(user_input, context, emotion)
-        safe_print(f"Generated response: {response}")
 
         # Generate a memory key
         generated_key = f"entry_{uuid.uuid4()}"
-        safe_print(f"Generated memory key: {generated_key}")
 
         # Log the turn in the messages table
         store_message_in_db(conn, user_input, response, emotion)
-        safe_print("Logged the turn in the database.")
 
         # Store memory explicitly
         store_memory(conn, session_id, user_input, response, memory_index)
-        safe_print("Stored memory explicitly.")
-
-        # Commented out for cleaner output, can be re-enabled if needed
-        # memory_index.print_index_status()
-        # print("Current keys:", memory_index.list_keys())
 
         return response, emotion
     except Exception as e:
         safe_print(f"Error processing input: {e}")
         return "I'm sorry, something went wrong.", None
+
+def is_vague_input(value: str) -> bool:
+    """
+    Determines whether a memory input is too vague to store.
+    Returns True if it should be skipped, False if it's meaningful.
+    """
+
+    # 🔹 Normalize and strip
+    value = value.strip().lower()
+
+    # 🔹 Always allow inputs that explicitly ask for memory recall
+    memory_keywords = [
+        "what do you remember", 
+        "do you remember", 
+        "can you recall", 
+        "did i ever tell you", 
+        "have i said"
+    ]
+    for phrase in memory_keywords:
+        if phrase in value:
+            return False  # NOT vague — intentionally introspective
+
+    # 🔹 Skip if only punctuation, filler, or whitespace
+    if re.fullmatch(r"[\s\.\,\?\!]*", value):
+        return True
+
+    # 🔹 Word count heuristic
+    word_count = len(value.split())
+    if word_count < 5:
+        return True
+
+    # 🔹 Red flag patterns (e.g., empty acknowledgments or system-like text)
+    low_info_patterns = [
+        r"^(ok|okay|cool|sure|yeah|no|hi|hello|hey|thanks)[\.\!\?]*$",
+        r"^(i see|i know|i guess|maybe|hmm)[\.\!\?]*$"
+    ]
+    for pattern in low_info_patterns:
+        if re.fullmatch(pattern, value):
+            return True
+
+    # ✅ Otherwise, input is meaningful
+    return False
 
 def store_memory(conn, session_id, user_input, value, memory_index, memory_type='fact'):
     cursor = conn.cursor()
@@ -101,8 +142,8 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
             return
 
     # Simple ranking mechanism: Check if the memory is too vague
-    if len(value.split()) < 5:  # Example condition for vagueness
-        safe_print(f"Skipping memory '{memory_key}' because it is too vague.")
+    if is_vague_input(value):
+        safe_print(f"[MEMORY] Skipping '{memory_key}' — input too vague.")
         return
 
     cursor.execute("INSERT OR REPLACE INTO memory (key, value, memory_type) VALUES (?, ?, ?)", (memory_key, value, memory_type))
@@ -111,6 +152,7 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
     memory_index.add_memory(memory_key, new_embedding)
     # Commented out for cleaner output, can be re-enabled if needed
     # print("Memory added. Total count:", len(memory_index))
+    safe_print(f"[DB STORE] Memory stored: {value}")
     conn.commit()
     return memory_key
 
@@ -135,6 +177,8 @@ User: {user_input}
 Context: {context if context else "None"}
 Emotion: {emotion}
 Response:"""
+    safe_print(f"[DEBUG] Input used for prompt: {user_input}")
+    safe_print(f"[DEBUG] Prompt constructed: {prompt[:300]}...")
     return generate_with_model(prompt)
 
 def make_response_more_calming(response):
@@ -181,6 +225,7 @@ def chat_with_user(user_input, context, emotion):
     return response
 
 def summarize_session(conn, session_id):
+    from memoriax2.shared.utils_db import store_in_db  # Late import to avoid circular dependency
     try:
         safe_print(f"Session ID: {session_id}")  # Log the session_id
         cursor = conn.cursor()
@@ -278,6 +323,8 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         rows = cursor.fetchall()
         recent_memories = {row[0] for row in rows} if rows else set()
         final_memories = [mem for mem in prioritized_memories if mem[0] not in recent_memories]
+
+        safe_print(f"[MEMORY RECALL] Retrieved memories: {final_memories}")
 
         return final_memories
     except Exception as e:

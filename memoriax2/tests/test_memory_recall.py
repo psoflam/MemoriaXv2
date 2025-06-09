@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from memoriax2.nlp.memory_recall import embed_text, store_embedding, retrieve_similar_memories
-from memoriax2.storage.database import init_db
+from memoriax2.db.init import init_db
 from memoriax2.memory.index_engine import MemoryIndex
 
 class TestMemoryRecall(unittest.TestCase):
