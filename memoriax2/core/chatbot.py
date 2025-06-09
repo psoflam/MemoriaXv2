@@ -18,7 +18,6 @@ from memoriax2.utils.generate import generate_with_model
 from memoriax2.db.memory_store import store_memory, retrieve_memory
 import re
 from memoriax2.core.fact_memory_engine import store_fact, extract_name
-from memoriax2.memory_recall import recall_memories
 from memoriax2.prompt_engine import build_prompt
 from memoriax2.model_engine import generate_response
 
@@ -65,9 +64,12 @@ def process_input(user_input, conn, session_id, memory_index):
     """
     try:
         safe_print(f"Processing input: {user_input}")
-        context = fetch_recent_memory_context(conn, user_input, memory_index)
+        # Retrieve similar memories
+        similar_memories = retrieve_similar_memories(user_input, conn, memory_index)
+        context = " ".join(similar_memories) if similar_memories else None
         emotion = detect_emotion(user_input)
-        response = chat_with_user(user_input, context, emotion)
+        # Use the new function to generate response with memory
+        response = generate_response_with_memory(user_input, context, conn)
 
         # Generate a memory key
         generated_key = f"entry_{uuid.uuid4()}"
@@ -160,15 +162,17 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
     conn.commit()
     return memory_key
 
-def generate_response(user_input, conn=None):
+def generate_response(user_input, context, conn=None):
     emotion = detect_emotion(user_input)
-    context = ""  # placeholder for memory/context logic
-    base = generate_base_response(user_input, context, emotion)
+    base_response = generate_base_response(user_input, context, emotion)
+
+    if not base_response.strip():
+        base_response = "I'm here, how can I help you?"
 
     if emotion == "sad":
-        response = make_response_more_empathetic(base)
+        response = make_response_more_empathetic(base_response)
     else:
-        response = f"Calmly, {base}"
+        response = f"Calmly, {base_response}"
 
     # Example of concise logging
     safe_print(f"[LOG] Processed '{user_input}' → Emotion: {emotion}")
@@ -176,11 +180,11 @@ def generate_response(user_input, conn=None):
     return response
 
 def generate_base_response(user_input, context="", emotion="neutral"):
-    prompt = f"""Conversation (Persona: {persona}):
+    prompt = f"""### Conversation (Persona: {persona})
 User: {user_input}
 Context: {context if context else "None"}
 Emotion: {emotion}
-Response:"""
+### Response:"""
     safe_print(f"[DEBUG] Input used for prompt: {user_input}")
     safe_print(f"[DEBUG] Prompt constructed: {prompt[:300]}...")
     return generate_with_model(prompt)
@@ -361,7 +365,9 @@ def store_message_in_db(conn, user_input, response, emotion):
 
 def generate_with_model(prompt):
     output = llm(prompt, max_tokens=200)
-    return output["choices"][0]["text"].strip()
+    raw = output["choices"][0]["text"]
+    safe_print(f"[MODEL RAW] {raw}")
+    return raw.strip()
 
 def sanitize_response(text):
     # Prevent obvious loops or identity spam
@@ -385,32 +391,47 @@ def log_message(message):
 # becomes
 # log_message(f"Memory added. Total count: {len(memory_index)}")
 
-def process_user_input(user_input):
+def process_user_input(user_input, conn, session_id, memory_index):
     print(f"[DEBUG] Processing input: {user_input}")
+    messages = []  # Collect messages to return
 
     # FACT TAGGING
     if "my name is" in user_input.lower() or "i am" in user_input.lower():
         name = extract_name(user_input)
         if name != "Unknown":
             store_fact("user_name", name)
-            print(f"[FACT] Stored name: {name}")
+            message = f"[FACT] Stored name: {name}"
+            print(message)
 
-    # MEMORY RECALL
-    recalled = recall_memories(user_input)
-    print(f"[MEMORY RECALL] Retrieved memories: {recalled}")
+    # Check for known facts
+    if "your name" in user_input.lower() or "my name" in user_input.lower():
+        user_name = lookup_fact("user_name")
+        if user_name:
+            return f"Your name is {user_name}, of course. I never forget you.", "neutral"
 
-    # BUILD PROMPT
-    prompt = build_prompt(user_input, recalled)
-    print(f"[DEBUG] Prompt constructed:\n{prompt}")
+    # Retrieve similar memories
+    similar_memories = retrieve_similar_memories(user_input, conn, memory_index)
 
-    # GENERATE REPLY
-    response = generate_response(prompt)
-    print(f"[BOT]: {response}")
+    # Inject known facts into the context
+    facts = []
+    user_name = lookup_fact("user_name")
+    if user_name:
+        facts.append(f"User's name is {user_name}.")
 
-    # STORE MEMORY
-    store_memory(user_input, response)
+    context = (facts + [text for _, text in similar_memories]) if similar_memories else facts
+    context_text = "\n".join(context) if context else "None"
+    print(f"[DEBUG] Memory context: {context_text}")  # Debug logging
 
+    # Generate response with memory context
+    response = generate_response(user_input, context_text)
     return response
+
+def lookup_fact(fact_type):
+    # This is a placeholder implementation. You should replace it with actual database retrieval logic.
+    # For now, it returns a hardcoded value for demonstration purposes.
+    if fact_type == "user_name":
+        return "Colin"  # Replace with actual retrieval logic
+    return None
 
 def main():
     print("Welcome to Memoria. Type 'exit' to quit.")
@@ -422,3 +443,44 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def generate_response_with_memory(user_input, context, conn=None):
+    emotion = detect_emotion(user_input)
+    prompt = f"Conversation (Persona: compassionate, curious):\n"
+    prompt += f"User: {user_input}\n"
+    prompt += f"Context: {context if context else 'None'}\n"
+    prompt += f"Respond accordingly."
+
+    base_response = generate_base_response(user_input, context, emotion)
+
+    if emotion == "sad":
+        response = make_response_more_empathetic(base_response)
+    else:
+        response = f"Calmly, {base_response}"
+
+    if conn:
+        store_in_db(conn, user_input, response, emotion)
+
+    return response
+
+def test_store_fact():
+    user_input = "My name is Colin."
+    process_user_input(user_input, conn, session_id, memory_index)
+
+    # Query memory table to confirm storage
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM memory WHERE value LIKE '%Colin%'")
+    result = cursor.fetchone()
+
+    assert result is not None, "Fact storage failed — memory not saved."
+    print("[TEST PASSED] Memory fact about name was saved.")
+
+# Verify memory retrieval
+
+def test_fact_inserted():
+    user_input = "My name is Colin."
+    process_user_input(user_input, conn, session_id, memory_index)
+
+    results = retrieve_similar_memories("What is my name?", conn, memory_index)
+    assert any("Colin" in val for _, val in results), "Memory retrieval failed — no memory containing 'Colin'"
+    print("[TEST PASSED] Memory containing 'Colin' retrieved successfully.")

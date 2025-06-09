@@ -1,7 +1,7 @@
 from llama_cpp import Llama
 
 # Initialize the LLaMA model
-llm = Llama(model_path="models/your-llama-model.gguf", n_ctx=2048)
+llm = Llama(model_path="memoriax2/models/mistral-7b-instruct-v0.1.Q4_0.gguf", n_ctx=2048)
 
 def generate_response(prompt: str) -> str:
     """

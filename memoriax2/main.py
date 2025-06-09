@@ -17,7 +17,7 @@ from memoriax2.nlp.emotion import detect_emotion
 from memoriax2.db.init import init_db
 from memoriax2.db.session_logger import log_session_message, store_session_memory
 from memoriax2.db.confirm_utils import summarize_session
-from memoriax2.core.chatbot import process_input, summarize_session
+from memoriax2.core.chatbot import process_user_input, summarize_session
 from memoriax2.memory.index_engine import get_memory_index
 
 def safe_print(*args, **kwargs):
@@ -57,7 +57,7 @@ def main():
 
             # Process the user input and get the response from the chatbot
             print("[DEBUG] Processing input")
-            response, emotion = process_input(user_input, conn, session_id, memory_index)
+            response, emotion = process_user_input(user_input, conn, session_id, memory_index)
             safe_print(f"[{timestamp}] Bot: {response}")
 
             # Store each response in the current session

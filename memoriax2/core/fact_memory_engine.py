@@ -2,24 +2,27 @@ import re
 import sqlite3
 from datetime import datetime
 from typing import Optional, List
+import os
 
 # === FACT ENGINE CORE ===
 
-FACT_DB_PATH = "data/fact_memory.db"
+# Define the path for the fact memory database
+FACT_DB_PATH = os.path.join(os.getcwd(), "memoriax2", "data", "fact_memory.db")
+
+# Debug print to verify the database path
+print("Attempting to write to:", FACT_DB_PATH)
 
 # Initialize fact DB if needed
 def init_fact_db():
     conn = sqlite3.connect(FACT_DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS facts (
-            key TEXT PRIMARY KEY,
-            value TEXT,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    cursor.execute('''CREATE TABLE IF NOT EXISTS facts (
+                        key TEXT PRIMARY KEY,
+                        value TEXT,
+                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                      )''')
     conn.commit()
-    conn.close()
+    return conn
 
 # Store a fact by key (upsert)
 def store_fact(key: str, value: str):
@@ -72,6 +75,13 @@ def extract_user_facts(user_input: str):
         prev = lookup_fact("emotion_history") or ""
         updated = ",".join(set(prev.split(",") + [emotion.lower()]))
         store_fact("emotion_history", updated)
+
+def extract_name(text):
+    """
+    Extracts a name from the given text using regex.
+    """
+    match = re.search(r"\b(?:my name is|i am|i'm)\s+([A-Z][a-z]+)", text, re.I)
+    return match.group(1) if match else "Unknown"
 
 # === CONTEXT-AWARE FALLBACK LOGIC ===
 
