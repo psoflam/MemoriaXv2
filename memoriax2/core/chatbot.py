@@ -12,18 +12,51 @@ import numpy as np
 import random
 import uuid
 from memoriax2.memory.index_engine import get_memory_index
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from llama_cpp import Llama
+import os
+import contextlib
+import sys
+# from memoriax2.utils.log import silence_prints
+
+# silence_prints()
+
+@contextlib.contextmanager
+def suppress_stdout():
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+@contextlib.contextmanager
+def suppress_stderr():
+    with open(os.devnull, 'w') as devnull:
+        stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = stderr
 
 # Add startup log for the shared MemoryIndex
 print("MemoryIndex initialized with:", len(get_memory_index()), "items")
 
-# Load the tokenizer and model
-model_name = 'distilgpt2'
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
+# Use suppress_stderr to silence llama.cpp and model loading output
+with suppress_stderr():
+    llm = Llama(
+        model_path=os.path.join(os.path.dirname(__file__), '..', 'models', 'mistral-7b-instruct-v0.1.Q4_0.gguf').replace('\\', '/'),
+        n_ctx=4096,
+        n_threads=8,
+        n_gpu_layers=35  # if you have GPU support
+    )
 
 # Add a global variable for persona
 persona = "compassionate, curious"
+
+# Flag to control output
+print_memory = False
 
 # Function to set persona
 def set_persona(new_persona):
@@ -31,27 +64,31 @@ def set_persona(new_persona):
     persona = new_persona
     print(f"Persona set to: {persona}")
 
+# Replace print statements with safe_print for chat output
+import builtins
+safe_print = builtins.__dict__['print']
+
 def process_input(user_input, conn, session_id, memory_index):
     try:
-        print(f"Processing input: {user_input}")
+        safe_print(f"Processing input: {user_input}")
         context = fetch_recent_memory_context(conn, user_input, memory_index)
-        print(f"Retrieved context: {context}")
+        safe_print(f"Retrieved context: {context}")
         emotion = detect_emotion(user_input)
-        print(f"Detected emotion: {emotion}")
+        safe_print(f"Detected emotion: {emotion}")
         response = chat_with_user(user_input, context, emotion)
-        print(f"Generated response: {response}")
+        safe_print(f"Generated response: {response}")
 
         # Generate a memory key
         generated_key = f"entry_{uuid.uuid4()}"
-        print(f"Generated memory key: {generated_key}")
+        safe_print(f"Generated memory key: {generated_key}")
 
         # Log the turn in the messages table
         store_message_in_db(conn, user_input, response, emotion)
-        print("Logged the turn in the database.")
+        safe_print("Logged the turn in the database.")
 
         # Store memory explicitly
         store_memory(conn, session_id, user_input, response, memory_index)
-        print("Stored memory explicitly.")
+        safe_print("Stored memory explicitly.")
 
         # Commented out for cleaner output, can be re-enabled if needed
         # memory_index.print_index_status()
@@ -59,7 +96,7 @@ def process_input(user_input, conn, session_id, memory_index):
 
         return response, emotion
     except Exception as e:
-        print(f"Error processing input: {e}")
+        safe_print(f"Error processing input: {e}")
         return "I'm sorry, something went wrong.", None
 
 def store_memory(conn, session_id, user_input, value, memory_index, memory_type='fact'):
@@ -68,7 +105,7 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
     new_embedding = embed_text(value)
 
     # Log the mapping of user_input to memory_key
-    print(f"Mapping user_input '{user_input}' to memory_key '{memory_key}'")
+    safe_print(f"Mapping user_input '{user_input}' to memory_key '{memory_key}'")
 
     # Get recent memory embeddings
     cursor.execute("SELECT key, embedding FROM memory_embeddings ORDER BY rowid DESC LIMIT 20")
@@ -79,12 +116,12 @@ def store_memory(conn, session_id, user_input, value, memory_index, memory_type=
         existing = np.frombuffer(emb_blob, dtype=np.float32)
         sim = np.dot(new_embedding, existing) / (np.linalg.norm(new_embedding) * np.linalg.norm(existing))
         if sim > 0.9:
-            print(f"Skipping memory '{memory_key}' due to similarity with '{recent_key}'")
+            safe_print(f"Skipping memory '{memory_key}' due to similarity with '{recent_key}'")
             return
 
     # Simple ranking mechanism: Check if the memory is too vague
     if len(value.split()) < 5:  # Example condition for vagueness
-        print(f"Skipping memory '{memory_key}' because it is too vague.")
+        safe_print(f"Skipping memory '{memory_key}' because it is too vague.")
         return
 
     cursor.execute("INSERT OR REPLACE INTO memory (key, value, memory_type) VALUES (?, ?, ?)", (memory_key, value, memory_type))
@@ -107,7 +144,7 @@ def generate_response(user_input, conn=None):
         response = f"Calmly, {base}"
 
     # Example of concise logging
-    print(f"[LOG] Processed '{user_input}' → Emotion: {emotion}")
+    safe_print(f"[LOG] Processed '{user_input}' → Emotion: {emotion}")
 
     return response
 
@@ -145,8 +182,8 @@ def conversation_mode(user_input, conn):
     context = " ".join(similar_memories)
 
     # Display context to the user and ask for confirmation
-    print("Retrieved context:")
-    print(context)
+    safe_print("Retrieved context:")
+    safe_print(context)
     confirmation = input("Is this context correct? (yes/no): ").strip().lower()
 
     if confirmation != 'yes':
@@ -164,7 +201,7 @@ def chat_with_user(user_input, context, emotion):
 
 def summarize_session(conn, session_id):
     try:
-        print(f"Session ID: {session_id}")  # Log the session_id
+        safe_print(f"Session ID: {session_id}")  # Log the session_id
         cursor = conn.cursor()
         cursor.execute("""
             SELECT key FROM session_memories
@@ -172,15 +209,15 @@ def summarize_session(conn, session_id):
         """, (session_id,))
         potential_memories = cursor.fetchall()
 
-        print(f"Number of potential memories fetched: {len(potential_memories)}")  # Print number of fetched rows
+        safe_print(f"Number of potential memories fetched: {len(potential_memories)}")  # Print number of fetched rows
 
         if not potential_memories:
-            print("No potential memories found.")
+            safe_print("No potential memories found.")
             return
 
-        print("Here's what I might remember from today:")
+        safe_print("Here's what I might remember from today:")
         for mem in potential_memories:
-            print(f"- {mem[0]}")
+            safe_print(f"- {mem[0]}")
 
         for mem in potential_memories:
             user_input = input(f"Should I remember this: {mem[0]}? (yes/no): ")
@@ -189,7 +226,7 @@ def summarize_session(conn, session_id):
                 val = retrieve_memory(conn, mem[0])
                 store_in_db(conn, session_id, mem[0], val, "neutral")  # Updated to use store_in_db
     except Exception as e:
-        print(f"Error summarizing session: {e}")
+        safe_print(f"Error summarizing session: {e}")
 
 def fetch_recent_memory_context(conn, user_input, memory_index):
     try:
@@ -197,7 +234,7 @@ def fetch_recent_memory_context(conn, user_input, memory_index):
         memory_texts = [text for key, text in similar]  # extract only the text
         return "\n".join(memory_texts) if memory_texts else "No relevant memories found."
     except Exception as e:
-        print(f"Error fetching memory context: {e}")
+        safe_print(f"Error fetching memory context: {e}")
         return "Error retrieving memory context."
 
 def add_empathetic_tone(response):
@@ -221,14 +258,14 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
         
         # Add a type check for the embedding
         if not isinstance(input_embedding, np.ndarray):
-            print("[EMBEDDING ERROR] Failed to embed input_text:", input_text)
+            safe_print("[EMBEDDING ERROR] Failed to embed input_text:", input_text)
             return []
 
         # Query MemoryIndex instead of calculating cosine similarities manually
         top_memory_ids = memory_index.query_similar(input_embedding, top_k)
 
         if not top_memory_ids:
-            print("No results from FAISS")
+            safe_print("No results from FAISS")
             return []
 
         # Fetch memory texts and keys from the database using the retrieved IDs
@@ -263,7 +300,7 @@ def retrieve_similar_memories(input_text, conn, memory_index, top_k=3, recent_me
 
         return final_memories
     except Exception as e:
-        print(f"Error retrieving similar memories: {e}")
+        safe_print(f"Error retrieving similar memories: {e}")
         return []
 
 def load_index_from_db(self, conn):
@@ -291,20 +328,9 @@ def store_message_in_db(conn, user_input, response, emotion):
         conn.commit()
 
 def generate_with_model(prompt):
-    inputs = tokenizer(prompt, return_tensors='pt')
-    outputs = model.generate(
-        **inputs,
-        max_length=60,
-        do_sample=True,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
-        num_return_sequences=1,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    result = decoded[len(prompt):].strip()  # Remove the echoed prompt
-    return sanitize_response(result)
+    with suppress_stdout():
+        output = llm(prompt, max_tokens=200)
+    return output["choices"][0]["text"].strip()
 
 def sanitize_response(text):
     # Prevent obvious loops or identity spam
@@ -312,3 +338,22 @@ def sanitize_response(text):
     unique_lines = list(dict.fromkeys(lines))
     filtered = [line for line in unique_lines if not any(bad in line.lower() for bad in ["i am a human", "i am memoriax", "i am ai"])]
     return "\n".join(filtered[:3]).strip()
+
+# Example function to demonstrate the logic
+
+def log_message(message):
+    global print_memory
+    if 'Memory added' in message:
+        print_memory = True
+    if print_memory:
+        safe_print(message)
+
+# Replace all print statements with log_message
+# Example:
+# print("Memory added. Total count:", len(memory_index))
+# becomes
+# log_message(f"Memory added. Total count: {len(memory_index)}")
+
+if __name__ == "__main__":
+    with suppress_stdout():
+        uuid.main()  # Replace 'main()' with the actual function that initializes your model

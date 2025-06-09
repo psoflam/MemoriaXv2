@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer, util
 import numpy as np
 import sqlite3
 
+from memoriax2.core.chatbot import generate_with_model
 from memoriax2.nlp.embedding import embed_text
 from memoriax2.nlp.emotion import detect_emotion
 
@@ -15,7 +16,7 @@ def get_embedding_dim():
 # Initialize MemoryIndex with the correct embedding dimension at runtime
 embedding_dim = get_embedding_dim()
 
-def store_embedding(conn, key, embedding)
+def store_embedding(conn, key, embedding):
     """Store the embedding in the database."""
     cursor = conn.cursor()
     cursor.execute("INSERT OR REPLACE INTO memory_embeddings (key, embedding) VALUES (?, ?)", (key, embedding.tobytes()))
@@ -118,3 +119,16 @@ def populate_memory(conn):
         key = f"entry_{i+1}"
         embedding = embed_text(text)
         store_embedding(conn, key, embedding) 
+
+def generate_base_response(user_input, context="", emotion="neutral", persona="curious, kind, attentive"):
+    prompt = f"""<s>[INST] You are MemoriaX, an emotionally intelligent AI companion.
+
+Persona: {persona}
+User Emotion: {emotion}
+Relevant Memory:
+{context if context else "None"}
+
+The user said: "{user_input}"
+
+Now respond as MemoriaX. [/INST]"""
+    return generate_with_model(prompt)
