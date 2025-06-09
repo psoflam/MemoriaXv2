@@ -32,20 +32,19 @@ from memoriax2.utils.log import silence_prints, debug_print
 session_id = str(uuid.uuid4())
 
 def main():
-    # Redirect stdout to suppress loading messages
-    original_stdout = sys.stdout
-    sys.stdout = open(os.devnull, 'w')
+    # Add debug prints to help identify where the script might be failing
+    print("[DEBUG] Starting main function")
 
     # Initialize the database connection
+    print("[DEBUG] Initializing database connection")
     conn = init_db()
 
     # Initialize the shared MemoryIndex instance
+    print("[DEBUG] Initializing MemoryIndex")
     memory_index = get_memory_index(384)  # Assuming 384 is the embedding dimension
     memory_index.load_index_from_db(conn)  # Load data from the database
 
-    # Restore stdout
-    sys.stdout.close()
-    sys.stdout = original_stdout
+    print("[DEBUG] Entering main loop")
 
     while True:
         # Get user input from the console
@@ -63,6 +62,7 @@ def main():
         safe_print(f"[{timestamp}] You: {user_input}")
 
         # Process the user input and get the response from the chatbot
+        print("[DEBUG] Processing input")
         response, emotion = process_input(user_input, conn, session_id, memory_index)
         safe_print(f"[{timestamp}] Bot: {response}")
 
@@ -78,10 +78,12 @@ def main():
             break
 
     # At exit, summarize the session and allow user to approve memories to retain
+    print("[DEBUG] Exiting session")
     exit_session(conn)
 
 # At exit, summarize the session and allow user to approve memories to retain
 def exit_session(conn):
+    print("[DEBUG] Summarizing session")
     summarize_session(conn, session_id)
 
 if __name__ == "__main__":

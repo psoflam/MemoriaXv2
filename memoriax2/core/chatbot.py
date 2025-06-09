@@ -1,3 +1,4 @@
+import sys
 from memoriax2.nlp.processor import analyze_input  # Import the analyze_input function from the memoriax2.nlp.processor module
 from memoriax2.storage.database import (
     mark_confirmed,
@@ -14,43 +15,23 @@ import uuid
 from memoriax2.memory.index_engine import get_memory_index
 from llama_cpp import Llama
 import os
-import contextlib
-import sys
 # from memoriax2.utils.log import silence_prints
 
 # silence_prints()
 
-@contextlib.contextmanager
-def suppress_stdout():
-    with open(os.devnull, 'w') as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
 
-@contextlib.contextmanager
-def suppress_stderr():
-    with open(os.devnull, 'w') as devnull:
-        stderr = sys.stderr
-        sys.stderr = devnull
-        try:
-            yield
-        finally:
-            sys.stderr = stderr
 
 # Add startup log for the shared MemoryIndex
 print("MemoryIndex initialized with:", len(get_memory_index()), "items")
 
-# Use suppress_stderr to silence llama.cpp and model loading output
-with suppress_stderr():
-    llm = Llama(
-        model_path=os.path.join(os.path.dirname(__file__), '..', 'models', 'mistral-7b-instruct-v0.1.Q4_0.gguf').replace('\\', '/'),
-        n_ctx=4096,
-        n_threads=8,
-        n_gpu_layers=35  # if you have GPU support
-    )
+# Remove the suppress_stderr context manager usage
+# with suppress_stderr():
+llm = Llama(
+    model_path=os.path.join(os.path.dirname(__file__), '..', 'models', 'mistral-7b-instruct-v0.1.Q4_0.gguf').replace('\\', '/'),
+    n_ctx=4096,
+    n_threads=8,
+    n_gpu_layers=35  # if you have GPU support
+)
 
 # Add a global variable for persona
 persona = "compassionate, curious"
@@ -328,8 +309,7 @@ def store_message_in_db(conn, user_input, response, emotion):
         conn.commit()
 
 def generate_with_model(prompt):
-    with suppress_stdout():
-        output = llm(prompt, max_tokens=200)
+    output = llm(prompt, max_tokens=200)
     return output["choices"][0]["text"].strip()
 
 def sanitize_response(text):
@@ -355,5 +335,4 @@ def log_message(message):
 # log_message(f"Memory added. Total count: {len(memory_index)}")
 
 if __name__ == "__main__":
-    with suppress_stdout():
-        uuid.main()  # Replace 'main()' with the actual function that initializes your model
+    uuid.main()  # Replace 'main()' with the actual function that initializes your model
