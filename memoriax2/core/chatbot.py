@@ -17,6 +17,10 @@ from memoriax2.db.confirm_utils import summarize_session
 from memoriax2.utils.generate import generate_with_model
 from memoriax2.db.memory_store import store_memory, retrieve_memory
 import re
+from memoriax2.core.fact_memory_engine import store_fact, extract_name
+from memoriax2.memory_recall import recall_memories
+from memoriax2.prompt_engine import build_prompt
+from memoriax2.model_engine import generate_response
 
 # Add startup log for the shared MemoryIndex
 print("MemoryIndex initialized with:", len(get_memory_index()), "items")
@@ -381,5 +385,40 @@ def log_message(message):
 # becomes
 # log_message(f"Memory added. Total count: {len(memory_index)}")
 
+def process_user_input(user_input):
+    print(f"[DEBUG] Processing input: {user_input}")
+
+    # FACT TAGGING
+    if "my name is" in user_input.lower() or "i am" in user_input.lower():
+        name = extract_name(user_input)
+        if name != "Unknown":
+            store_fact("user_name", name)
+            print(f"[FACT] Stored name: {name}")
+
+    # MEMORY RECALL
+    recalled = recall_memories(user_input)
+    print(f"[MEMORY RECALL] Retrieved memories: {recalled}")
+
+    # BUILD PROMPT
+    prompt = build_prompt(user_input, recalled)
+    print(f"[DEBUG] Prompt constructed:\n{prompt}")
+
+    # GENERATE REPLY
+    response = generate_response(prompt)
+    print(f"[BOT]: {response}")
+
+    # STORE MEMORY
+    store_memory(user_input, response)
+
+    return response
+
+def main():
+    print("Welcome to Memoria. Type 'exit' to quit.")
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() == "exit":
+            break
+        process_user_input(user_input)
+
 if __name__ == "__main__":
-    uuid.main()  # Replace 'main()' with the actual function that initializes your model
+    main()
